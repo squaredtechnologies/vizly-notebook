@@ -1,0 +1,29 @@
+import ConnectionManager from "../../../services/connection/connectionManager";
+import { NoterousFile } from "../../../types/file.types";
+import { useNotebookStore } from "../../notebook/store/NotebookStore";
+
+export function refresh(path: string) {
+	return getPathContents(path);
+}
+
+function getPathContents(path: string): Promise<NoterousFile[]> {
+	return ConnectionManager.getInstance().ready.then(() =>
+		ConnectionManager.getInstance()
+			.serviceManager!.contents.get(path)
+			.then((contents) => {
+				if (!contents || !contents.content) {
+					return [] as NoterousFile[];
+				}
+				return contents.content as NoterousFile[];
+			})
+			.catch((e) => {
+				if (e.response.status != 404) {
+					console.error(e);
+				}
+
+				// if there's an error, return the existing files. this prevents the files from disappearing
+				const { files } = useNotebookStore.getState();
+				return files as NoterousFile[];
+			}),
+	);
+}

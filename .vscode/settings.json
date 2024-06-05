@@ -1,0 +1,12 @@
+{
+	"editor.formatOnSave": true,
+	"[typescript]": {
+		"editor.codeActionsOnSave": {
+			"source.organizeImports": "explicit"
+		}
+	},
+	"[python]": {
+		"editor.formatOnSave": true,
+		"editor.defaultFormatter": "ms-python.autopep8"
+	}
+}
