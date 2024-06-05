@@ -15,6 +15,7 @@ import { captureException } from "@sentry/nextjs";
 import { useNotebookStore } from "../../components/notebook/store/NotebookStore";
 import { NoterousCell } from "../../types/code.types";
 import { multilineStringToString } from "../../utils/utils";
+import TextEmbeddingModel from "../embedding/TextEmbedder";
 
 export class KernelModel {
 	// Initialize an empty queue
@@ -159,6 +160,16 @@ export class KernelModel {
 		if (!this.kernel) {
 			return Promise.all([]);
 		}
+		const code = multilineStringToString(cell.source);
+		try {
+			this.cellMetadata["embedding"] =
+				TextEmbeddingModel.getInstance().embed(
+					code,
+				) as any as PartialJSONObject;
+		} catch (error) {
+			console.error(error);
+		}
+
 		return Promise.all([]);
 	}
 

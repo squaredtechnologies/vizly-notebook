@@ -71,9 +71,9 @@ const KernelSelectionModal = () => {
 		setIsLoading(true);
 		try {
 			if (selectedKernel?.name != NO_KERNEL) {
-				await connectionManager.connectToKernelForNotebook(
-					selectedKernel?.name,
-				);
+				await connectionManager.connectToKernelForNotebook({
+					kernelSelection: selectedKernel?.name,
+				});
 			}
 			closeModal();
 		} catch (error) {

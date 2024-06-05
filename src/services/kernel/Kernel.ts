@@ -112,7 +112,9 @@ export class Kernel {
 
 			// Kernel has been disposed due to timeout refresh it
 			const session = await ConnectionManager.getInstance().getNewSession(
-				kernelSpec?.name,
+				{
+					kernelSelection: kernelSpec?.name,
+				},
 			);
 			if (session) {
 				this.initKernel(session);

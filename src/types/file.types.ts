@@ -14,7 +14,7 @@ export interface NoterousFile extends File {
 export type NotebookMetadata = {
 	noterous: {
 		id: string;
-		preferredLanguage?: string;
+		sessionId?: string;
 		kernelId?: string;
 	};
 } & Record<string, any>;

@@ -12,6 +12,7 @@ import { create } from "zustand";
 import { languageServer } from "../../components/cell/input/extensions/languageServer";
 import { useNotebookStore } from "../../components/notebook/store/NotebookStore";
 import { standaloneToast } from "../../theme";
+import TextEmbeddingModel from "../embedding/TextEmbedder";
 import Kernel from "../kernel/Kernel";
 
 export interface ServerConnection {
@@ -107,6 +108,13 @@ class ConnectionManager {
 		this.setSessionManager(serviceManager.sessions);
 		this._resolve();
 
+		try {
+			// Load the text embedding model
+			TextEmbeddingModel.getInstance();
+		} catch (e) {
+			console.error(e);
+		}
+
 		return serviceManager;
 	}
 
@@ -153,19 +161,25 @@ class ConnectionManager {
 		this.token = token;
 	}
 
-	async getNewSession(kernelSelection?: string) {
+	async getNewSession({
+		kernelSelection,
+		sessionId,
+	}: {
+		kernelSelection?: string;
+		sessionId?: string;
+	}) {
 		if (!this.sessionManager) {
 			console.error("Error occurred accessing kernel manager");
 		}
 
-		const { getKernelId, setKernelId, getNotebookPath } =
+		const { setSessionId, getSessionId, getNotebookPath } =
 			useNotebookStore.getState();
 
 		// Wait for the kernel manager to be ready
 		await this.sessionManager!.ready;
 
 		let session: Session.ISessionConnection | undefined;
-		const id = getKernelId();
+		const id = getSessionId() ?? sessionId;
 		const path = getNotebookPath();
 		let sessionModel = null;
 		if (id) {
@@ -184,8 +198,8 @@ class ConnectionManager {
 					name: kernelSelection,
 				},
 			});
-			if (session && session.kernel) {
-				setKernelId(session.kernel.id);
+			if (session) {
+				setSessionId(session.id);
 			}
 		} else {
 			useConnectionManagerStore.getState().openKernelSelectionModal();
@@ -194,11 +208,20 @@ class ConnectionManager {
 		return session;
 	}
 
-	async connectToKernelForNotebook(kernelSelection?: string) {
+	async connectToKernelForNotebook({
+		kernelSelection,
+		sessionId,
+	}: {
+		kernelSelection?: string;
+		sessionId?: string;
+	}) {
 		// Wait for the connection manager to be ready
 		await this.ready;
 		await this.serviceManager?.ready;
-		const session = await this.getNewSession(kernelSelection);
+		const session = await this.getNewSession({
+			kernelSelection,
+			sessionId,
+		});
 		if (!session) {
 			this.clearKernel();
 			return;

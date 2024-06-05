@@ -80,8 +80,8 @@ export interface INotebookStore {
 	setNotebookId: (id: string) => void;
 	getNotebookId: (notebook?: NotebookFile) => string;
 
-	setKernelId: (id: string) => void;
-	getKernelId: () => string | undefined;
+	setSessionId: (id: string) => void;
+	getSessionId: () => string | undefined;
 
 	cells: NoterousCell[];
 	metadata: NotebookMetadata;
@@ -404,25 +404,25 @@ export const useNotebookStore = create<INotebookStore>()(
 					// Save the notebook to save the ID after it is set
 					get().handleSave();
 				},
-				setKernelId: (id: string) => {
+				setSessionId: (id: string) => {
 					const { metadata } = get();
 					set({
 						metadata: {
 							...metadata,
 							noterous: {
 								...metadata.noterous,
-								kernelId: id,
+								sessionId: id,
 							},
 						},
 					});
 				},
-				getKernelId: () => {
-					let kernelId;
+				getSessionId: () => {
+					let sessionId;
 					const { metadata } = get().metadata;
 					if (metadata && metadata.noterous) {
-						kernelId = metadata.noterous.kernelId;
+						sessionId = metadata.noterous.sessionId;
 					}
-					return kernelId;
+					return sessionId;
 				},
 				getNotebookPath: () => {
 					const { router } = get();
@@ -1059,9 +1059,10 @@ export const useNotebookStore = create<INotebookStore>()(
 					setSelectedNotebook(notebook);
 					set({ isLoadingNotebook: false });
 
-					ConnectionManager.getInstance().connectToKernelForNotebook(
+					ConnectionManager.getInstance().connectToKernelForNotebook({
 						kernelSelection,
-					);
+						sessionId: notebook.metadata?.noterous?.sessionId,
+					});
 
 					const router = get().router;
 					const routerKernel = router.query.kernelSelection;
