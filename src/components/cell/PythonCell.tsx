@@ -28,7 +28,6 @@ import { useNotebookStore } from "../notebook/store/NotebookStore";
 import InputArea from "./input/InputArea";
 import OutputArea from "./output/OutputArea";
 import useCellStore, { CellStatus } from "./store/CellStore";
-import { useCellHeaderHotkeys } from "./actions/useCellHeaderHotkeys";
 
 interface CellContainerProps {
 	index: number;
@@ -47,10 +46,43 @@ interface PythonCellProps {
 
 const CellHeaderActions = ({ cell }: { cell: ICell }) => {
 	const { id: cellId } = cell;
-	useCellHeaderHotkeys(cellId as string);
 	const cellState = useCellStore((state) => state.cellStates)[
 		cellId as string
 	];
+
+	useEffect(() => {
+		// Define the keydown event handler
+		const handleDocumentKeyDown = (event: KeyboardEvent) => {
+			// Do not process if the cell state is follow up
+			if (cellState?.status !== CellStatus.FollowUp) return;
+
+			if (event.key === "Enter" && event.metaKey && event.shiftKey) {
+				const { acceptAndRunProposedSource } = useCellStore.getState();
+				acceptAndRunProposedSource(cellId as string);
+				event.stopPropagation();
+				event.preventDefault();
+			} else if (event.key === "Enter" && event.metaKey) {
+				const { acceptProposedSource } = useCellStore.getState();
+				acceptProposedSource(cellId as string);
+				event.stopPropagation();
+				event.preventDefault();
+			} else if (event.key === "Backspace" && event.metaKey) {
+				const { rejectProposedSource } = useCellStore.getState();
+				rejectProposedSource(cellId as string);
+				event.stopPropagation();
+				event.preventDefault();
+			}
+		};
+
+		// Add the keydown event listener to the document
+		document.addEventListener("keydown", handleDocumentKeyDown);
+
+		// Clean up the event listener on unmount
+		return () => {
+			document.removeEventListener("keydown", handleDocumentKeyDown);
+		};
+	}, [cellId]);
+
 	return (
 		<>
 			{cellState?.status === CellStatus.FollowUp && (

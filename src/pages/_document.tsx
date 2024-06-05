@@ -5,7 +5,11 @@ export default function Document() {
 
 	return (
 		<Html lang="en" dir="ltr">
-			<Head></Head>
+			<Head>
+				{/* The require.js dependency required for some visualization embeds. */}
+				<script src="/hecks/require.2.3.4.min.js" async />
+				<script src="/hecks/plotly.js" async />
+			</Head>
 			<body>
 				<Main />
 				<NextScript />

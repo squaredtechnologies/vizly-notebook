@@ -1,6 +1,7 @@
 import useCellStore, {
 	CellStatus,
 } from "../../components/cell/store/CellStore";
+import { useNotebookStore } from "../../components/notebook/store/NotebookStore";
 import ConnectionManager from "../../services/connection/connectionManager";
 import { NoterousCell } from "../../types/code.types";
 import { makeStreamingFunctionRequest } from "../streaming";
@@ -20,7 +21,9 @@ export const editCell = async (cell: NoterousCell, query: string) => {
 			currentNamespace: ConnectionManager.getInstance().currentNamespace,
 			theme: getAppTheme(),
 		},
-		shouldCancel: () => false,
+		shouldCancel: () =>
+			useNotebookStore.getState().userAbortedMagicQueryController.signal
+				.aborted,
 	});
 
 	for await (const data of stream) {

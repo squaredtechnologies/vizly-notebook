@@ -16,7 +16,6 @@ import { multilineStringToString } from "../../../utils/utils";
 import { useNotebookStore } from "../../notebook/store/NotebookStore";
 import { mimeRenderer } from "./mimeRenderer";
 import ErrorRenderer from "./renderers/ErrorRenderer";
-import useCellStore from "../store/CellStore";
 
 interface OutputAreaProps {
 	index: number;
@@ -72,6 +71,7 @@ const OutputArea: React.FC<OutputAreaProps> = React.memo(
 		const renderedOutputs = useMemo(
 			() =>
 				outputs.map((output: IOutput, i) => {
+					console.log(output);
 					let mimeKey: string;
 					delete output["transient"];
 					switch (output.output_type) {

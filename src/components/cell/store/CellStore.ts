@@ -74,7 +74,9 @@ const useCellStore = create<CellStoreState>((set, get) => ({
 			);
 			return;
 		}
-		setCellSource(cellId, state.cellStates[cellId].proposedSource);
+		const proposedSource = state.cellStates[cellId].proposedSource;
+		setCellSource(cellId, proposedSource);
+		state.setProposedSource(cellId, "");
 		state.setCellStatus(cellId, CellStatus.Initial);
 	},
 	acceptAndRunProposedSource: (cellId: string) => {
@@ -82,11 +84,8 @@ const useCellStore = create<CellStoreState>((set, get) => ({
 		useNotebookStore.getState().executeCell(cellId);
 	},
 	rejectProposedSource: (cellId: string) => {
-		set((storeState) => {
-			const newState = { ...storeState.cellStates };
-			delete newState[cellId];
-			return { cellStates: newState };
-		});
+		get().setProposedSource(cellId, "");
+		get().setCellStatus(cellId, CellStatus.Initial);
 	},
 	setPreviousQuery(cellId, query) {
 		set((storeState) => {

@@ -445,9 +445,7 @@ export const useNotebookStore = create<INotebookStore>()(
 
 				userAbortedMagicQueryController: new AbortController(),
 				abortMagicQuery: () => {
-					console.debug("Aborting magic query");
 					get().userAbortedMagicQueryController.abort();
-
 					// Interrupt code execution if running
 					ConnectionManager.getInstance().kernel?.interrupt();
 				},
@@ -904,6 +902,9 @@ export const useNotebookStore = create<INotebookStore>()(
 					// update markdown cell to rendered: true
 					set((state) => {
 						const newCells = [...state.cells];
+						if (newCells.length == 0) {
+							return { cells: newCells };
+						}
 						const cellIndex = state.getCellIndexById(cellId);
 
 						const markdownCellToExecute = {
@@ -1146,7 +1147,12 @@ export const useNotebookStore = create<INotebookStore>()(
 									type: "notebook",
 									content: {
 										...get().fileContents,
-										cells: get().cells,
+										cells: get().cells.map((cell) => {
+											if (cell.cell_type == "markdown") {
+												delete cell.id;
+											}
+											return cell;
+										}),
 										metadata: get().metadata,
 									},
 								},

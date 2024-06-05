@@ -30,8 +30,10 @@ import {
 	CloseIcon,
 } from "@chakra-ui/icons";
 import { isInViewport, isPlatformMac } from "../../utils/utils";
-import useCellStore from "../cell/store/CellStore";
+import useCellStore, { CellStatus } from "../cell/store/CellStore";
 import { enableCommandMode } from "../cell/actions/actions";
+import { useCellHeaderHotkeys } from "../cell/actions/useCellHeaderHotkeys";
+import { useChatStore } from "../sidebar/chat/store/ChatStore";
 
 const goToActiveCell = (mainPanelRef: React.RefObject<HTMLDivElement>) => {
 	const activeCell = document.querySelector(".active-cell");
@@ -170,6 +172,11 @@ export const MagicInput = ({
 	const availableSelections = useMagicInputStore(
 		(state) => state.availableSelections,
 	);
+	const {
+		acceptAndRunProposedSource,
+		acceptProposedSource,
+		rejectProposedSource,
+	} = useCellStore.getState();
 	const textareaRef = useRef<HTMLTextAreaElement>(null);
 
 	const getCommandKey = () => {
@@ -210,32 +217,52 @@ export const MagicInput = ({
 		const { selectedOption, availableSelections, setSelectedOption } =
 			useMagicInputStore.getState();
 
-		if (event.key === "Enter" && !event.shiftKey && !isGeneratingCells) {
+		// Handle meta/ctrl + Enter
+		if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
+			if (event.shiftKey) {
+				acceptAndRunProposedSource(activeCell.id as string);
+			} else {
+				acceptProposedSource(activeCell.id as string);
+			}
+			event.preventDefault();
+		} else if (
+			(event.metaKey || event.ctrlKey) &&
+			event.key === "Backspace"
+		) {
+			if (isGeneratingCells) {
+				useNotebookStore.getState().abortMagicQuery();
+				event.preventDefault();
+				if (useChatStore.getState().isResponding) {
+					useChatStore.getState().abortController.abort();
+					event.preventDefault();
+				}
+			} else if (cellState.status == CellStatus.FollowUp) {
+				rejectProposedSource(activeCell.id as string);
+				event.preventDefault();
+			}
+		} else if (
+			event.key === "Enter" &&
+			!event.shiftKey &&
+			!isGeneratingCells
+		) {
+			// Handle Enter key without Shift
 			handleQuery(value);
 			event.stopPropagation();
 			event.preventDefault();
 		} else if (event.key === "Escape") {
+			// Handle Escape key
 			if (selectedCode !== "") {
 				setSelectedCode("");
 			} else if (textareaRef.current) {
 				textareaRef.current.blur();
 			}
 		} else if ((event.metaKey || event.ctrlKey) && event.key === "k") {
-			// Find current index of the selected option
+			// Handle meta/ctrl + k
 			const currentIndex = availableSelections.indexOf(
 				selectedOption as MagicInputSelections,
 			);
-			// Determine the index of the next item (with wrap-around)
 			const nextIndex = (currentIndex + 1) % availableSelections.length;
-			// Set the selected option to the next item
 			setSelectedOption(availableSelections[nextIndex]);
-			event.preventDefault();
-		} else if (
-			isGeneratingCells &&
-			(event.metaKey || event.ctrlKey) &&
-			event.key === "Backspace"
-		) {
-			useNotebookStore.getState().abortMagicQuery();
 			event.preventDefault();
 		}
 	};

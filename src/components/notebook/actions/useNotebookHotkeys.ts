@@ -8,6 +8,7 @@ import {
 	runCell,
 	runCellAndAdvance,
 } from "../../cell/actions/actions";
+import useCellStore, { CellStatus } from "../../cell/store/CellStore";
 import { useMagicInputStore } from "../../input/MagicInputStore";
 import { useSidebarStore } from "../../sidebar/store/SidebarStore";
 import { useNotebookStore } from "../store/NotebookStore";
@@ -38,12 +39,14 @@ const useHotkeysDoublePress = (
 export const useNotebookHotkeys = () => {
 	const notebookMode = () => useNotebookStore.getState().notebookMode;
 	const activeCellIndex = () => useNotebookStore.getState().activeCellIndex;
-	const getActiveCell = () => useNotebookStore.getState().getActiveCell;
+	const getActiveCell = useNotebookStore.getState().getActiveCell;
 	const cells = () => useNotebookStore.getState().cells;
 	const setActiveCell = useNotebookStore.getState().setActiveCell;
 	const addCellAtIndex = useNotebookStore.getState().addCellAtIndex;
 	const deleteActiveCell = useNotebookStore.getState().deleteActiveCell;
 	const clampIndex = useNotebookStore.getState().clampIndex;
+	const cellState = (cellId: string) =>
+		useCellStore.getState().cellStates[cellId];
 
 	// Define hotkeys for 'command' mode
 	useHotkeys("enter", (event: KeyboardEvent, hotkeysEvent: HotkeysEvent) => {
@@ -111,23 +114,36 @@ export const useNotebookHotkeys = () => {
 	});
 
 	useHotkeys(
-		"ctrl+enter",
-		(event: KeyboardEvent, hotkeysEvent: HotkeysEvent) => {
-			runCell();
-		},
-	);
-
-	useHotkeys(
 		"shift+enter",
 		(event: KeyboardEvent, hotkeysEvent: HotkeysEvent) => {
 			runCellAndAdvance();
 		},
 	);
 
+	const runCellLogic = () => {
+		const cell = getActiveCell();
+		if (
+			cell &&
+			cell.id &&
+			cellState(cell.id as string).status == CellStatus.FollowUp
+		) {
+			// Cell header is present so the default action is overridden
+			return;
+		} else {
+			runCell();
+		}
+	};
 	useHotkeys(
 		"mod+enter",
 		(event: KeyboardEvent, hotkeysEvent: HotkeysEvent) => {
-			runCell();
+			runCellLogic();
+		},
+	);
+
+	useHotkeys(
+		"ctrl+enter",
+		(event: KeyboardEvent, hotkeysEvent: HotkeysEvent) => {
+			runCellLogic();
 		},
 	);
 

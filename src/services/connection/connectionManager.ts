@@ -1,3 +1,4 @@
+import { ICell } from "@jupyterlab/nbformat";
 import {
 	Contents,
 	ServerConnection,
@@ -277,7 +278,24 @@ class ConnectionManager {
 	}
 
 	async getFileContents(path: string): Promise<Contents.IModel> {
-		return this.serviceManager!.contents.get(path);
+		return this.serviceManager!.contents.get(path).then((contents) => {
+			if (
+				contents.type === "notebook" &&
+				contents.content &&
+				contents.content.cells
+			) {
+				contents.content.cells = contents.content.cells.map(
+					(cell: ICell) => {
+						if (!cell.metadata) {
+							cell.metadata = {};
+						}
+						return cell;
+					},
+				);
+			}
+
+			return contents;
+		});
 	}
 
 	async renameFile(

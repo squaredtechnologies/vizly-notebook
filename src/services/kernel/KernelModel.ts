@@ -79,6 +79,10 @@ export class KernelModel {
 			return {};
 		}
 
+		if (!this.cell.metadata) {
+			this.cell.metadata = {};
+		}
+
 		if (!this.cell.metadata["noterous"]) {
 			this.cell.metadata["noterous"] = {};
 		}
