@@ -19,7 +19,6 @@ import { ChevronDownIcon } from "@chakra-ui/icons";
 import { useConnectionManagerStore } from "../../../services/connection/connectionManager";
 import ConnectionManager from "../../../services/connection/connectionManager";
 import { useNotebookStore } from "../../notebook/store/NotebookStore";
-import { IModel } from "@jupyterlab/services/lib/terminal/restapi";
 
 const NO_KERNEL = "No kernel";
 

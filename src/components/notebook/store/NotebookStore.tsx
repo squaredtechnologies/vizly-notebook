@@ -83,6 +83,9 @@ export interface INotebookStore {
 	setSessionId: (id: string) => void;
 	getSessionId: () => string | undefined;
 
+	setKernelId: (id: string) => void;
+	getKernelId: () => string | undefined;
+
 	cells: NoterousCell[];
 	metadata: NotebookMetadata;
 
@@ -423,6 +426,26 @@ export const useNotebookStore = create<INotebookStore>()(
 						sessionId = metadata.noterous.sessionId;
 					}
 					return sessionId;
+				},
+				setKernelId: (id: string) => {
+					const { metadata } = get();
+					set({
+						metadata: {
+							...metadata,
+							noterous: {
+								...metadata.noterous,
+								kernelId: id,
+							},
+						},
+					});
+				},
+				getKernelId: () => {
+					let kernelId;
+					const { metadata } = get().metadata;
+					if (metadata && metadata.noterous) {
+						kernelId = metadata.noterous.kernelId;
+					}
+					return kernelId;
 				},
 				getNotebookPath: () => {
 					const { router } = get();

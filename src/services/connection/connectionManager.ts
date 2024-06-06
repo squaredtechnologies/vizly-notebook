@@ -5,7 +5,7 @@ import {
 	ServiceManager,
 	Session,
 } from "@jupyterlab/services";
-import { Status } from "@jupyterlab/services/lib/kernel/kernel";
+import { IModel, Status } from "@jupyterlab/services/lib/kernel/kernel";
 import { captureException } from "@sentry/nextjs";
 import { Extension } from "@uiw/react-codemirror";
 import { create } from "zustand";
@@ -14,6 +14,12 @@ import { useNotebookStore } from "../../components/notebook/store/NotebookStore"
 import { standaloneToast } from "../../theme";
 import TextEmbeddingModel from "../embedding/TextEmbedder";
 import Kernel from "../kernel/Kernel";
+
+export type ConnectionOptions = {
+	kernelSelection?: string;
+	sessionId?: string;
+	kernelId?: string;
+};
 
 export interface ServerConnection {
 	serviceManager?: ServiceManager;
@@ -163,16 +169,14 @@ class ConnectionManager {
 
 	async getNewSession({
 		kernelSelection,
+		kernelId,
 		sessionId,
-	}: {
-		kernelSelection?: string;
-		sessionId?: string;
-	}) {
+	}: ConnectionOptions) {
 		if (!this.sessionManager) {
 			console.error("Error occurred accessing kernel manager");
 		}
 
-		const { setSessionId, getSessionId, getNotebookPath } =
+		const { setSessionId, getSessionId, setKernelId, getNotebookPath } =
 			useNotebookStore.getState();
 
 		// Wait for the kernel manager to be ready
@@ -184,6 +188,10 @@ class ConnectionManager {
 		let sessionModel = null;
 		if (id) {
 			sessionModel = await this.sessionManager?.findById(id);
+		}
+		let foundKernel: IModel | undefined;
+		if (kernelId) {
+			foundKernel = await this.serviceManager?.kernels.findById(kernelId);
 		}
 
 		if (sessionModel) {
@@ -200,6 +208,9 @@ class ConnectionManager {
 			});
 			if (session) {
 				setSessionId(session.id);
+				if (session.kernel) {
+					setKernelId(session.kernel.id);
+				}
 			}
 		} else {
 			useConnectionManagerStore.getState().openKernelSelectionModal();
@@ -211,10 +222,7 @@ class ConnectionManager {
 	async connectToKernelForNotebook({
 		kernelSelection,
 		sessionId,
-	}: {
-		kernelSelection?: string;
-		sessionId?: string;
-	}) {
+	}: ConnectionOptions) {
 		// Wait for the connection manager to be ready
 		await this.ready;
 		await this.serviceManager?.ready;
