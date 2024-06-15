@@ -4,7 +4,7 @@ import { NextApiRequest, NextApiResponse } from "next";
 import { FunctionDefinition } from "openai/resources";
 import { ActionState } from "../../../../types/messages";
 import { formatMessages } from "../../_shared/message";
-import { getModelForRequest } from "../../_shared/model";
+import { ModelInformation, getModelForRequest } from "../../_shared/model";
 import { getOpenAIClient } from "../../_shared/openai";
 
 enum ActionType {
@@ -56,7 +56,6 @@ const actionProperty: ActionProperty<typeof isDevelopment> = {
 			type: "object",
 			description: `Conditions you should return '${ActionType.Code}':
 - The user has asked you to complete an action that can be completed using code.
-- The assistant needs to execute code as the next step in the conversation or to complete the user's request.
 - The user has asked a question that can be answered by loading of the files provided.`,
 			properties: {
 				type: {
@@ -99,6 +98,7 @@ const actionProperty: ActionProperty<typeof isDevelopment> = {
 		{
 			type: "object",
 			description: `Conditions you should return '${ActionType.Stop}':
+- The assistant has generated the necessary code to answer the users request.
 - The user must answer the assistant's question before you can proceed.
 - You are awaiting for the user's input. You must return '${ActionType.Stop}' in this case.
 - The user's answer has been completely answered and a result summary has been provided.
@@ -190,14 +190,12 @@ export default async function handler(
 	if (req.method === "POST") {
 		let {
 			actionState,
-			openAIKey,
-			openAIBaseURL,
+			modelInformation,
 			uniqueId,
 			autoExecuteGeneratedCode,
 		}: {
 			actionState: ActionState;
-			openAIKey?: string;
-			openAIBaseURL?: string;
+			modelInformation?: ModelInformation;
 			uniqueId?: string;
 			autoExecuteGeneratedCode?: boolean;
 		} = req.body;
@@ -225,11 +223,10 @@ Your instructions:
 			maskedActionFunction.parameters!.properties as any
 		).action.oneOf.map((action: any) => action.properties.type.const);
 
-		const openai = getOpenAIClient(openAIKey, openAIBaseURL);
+		const openai = getOpenAIClient(modelInformation);
+		const model = getModelForRequest(modelInformation);
 
 		try {
-			const model = getModelForRequest();
-
 			const response = await openai.chat.completions.create({
 				model: model,
 				messages: messages,
@@ -272,7 +269,8 @@ Your instructions:
 
 				res.status(200).json(action);
 			} else {
-				res.status(200).json({});
+				res.status(200).json({ type: ActionType.Code });
+				// res.status(200).json({});
 			}
 		} catch (error) {
 			captureException(error);
