@@ -144,6 +144,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
 				const fileContent = JSON.parse(file.content);
 
 				set({
+					autoExecuteGeneratedCode: fileContent.autoExecuteGeneratedCode,
 					openAIKey: fileContent.openAIKey || "",
 					openAIBaseURL: fileContent.openAIBaseURL || "",
 					serverProxyURL: fileContent.serverProxyURL || "",
