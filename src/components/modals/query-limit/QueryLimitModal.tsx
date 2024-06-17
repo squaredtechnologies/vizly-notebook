@@ -12,7 +12,7 @@ import {
 } from "@chakra-ui/react";
 import Link from "next/link";
 import { MAX_AI_API_CALLS } from "../../../hooks/useApiCallStore";
-import { useSettingsStore } from "../server-settings/SettingsStore";
+import { useSettingsStore } from "../../settings/SettingsStore";
 import { useQueryLimitModalStore } from "./QueryLimitModalStore";
 
 const QueryLimitModal = () => {
@@ -72,7 +72,7 @@ const QueryLimitModal = () => {
 									handleClose();
 									useSettingsStore
 										.getState()
-										.setShowServerSettingsModal(true);
+										.setShowModelSettingsModal(true);
 								}}
 								cursor={"pointer"}
 								color="orange.400"

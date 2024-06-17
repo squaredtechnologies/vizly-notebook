@@ -22,13 +22,11 @@ import {
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { OllamaIcon, OpenAIIcon } from "../../../assets/icons";
-import { useModelSettingsModalStore } from "./ModelSettingsModalStore"; // adjust the import based on your file structure
+import { useSettingsStore } from "../../settings/SettingsStore"; // adjust the import based on your file structure
 
 const ModelSettingsModal = () => {
-	const isOpen = useModelSettingsModalStore(
-		(state) => state.showModelSettingsModal,
-	);
-	const setIsOpen = useModelSettingsModalStore(
+	const isOpen = useSettingsStore((state) => state.showModelSettingsModal);
+	const setIsOpen = useSettingsStore(
 		(state) => state.setShowModelSettingsModal,
 	);
 	const handleClose = () => {
@@ -36,26 +34,20 @@ const ModelSettingsModal = () => {
 	};
 
 	useEffect(() => {
-		useModelSettingsModalStore.getState().fetchSettings();
+		useSettingsStore.getState().fetchSettings();
 	}, []);
 
-	const openaiKey = useModelSettingsModalStore((state) => state.openAIKey);
-	const openAIBaseUrl = useModelSettingsModalStore(
-		(state) => state.openAIBaseURL,
-	);
-	const serverProxyURL = useModelSettingsModalStore(
-		(state) => state.serverProxyURL,
-	);
-	const modelType = useModelSettingsModalStore((state) => state.modelType);
-	const ollamaUrl = useModelSettingsModalStore((state) => state.ollamaUrl);
-	const ollamaModel = useModelSettingsModalStore(
-		(state) => state.ollamaModel,
-	);
-	const { setSettings, setModelType } = useModelSettingsModalStore.getState();
+	const openaiKey = useSettingsStore((state) => state.openAIKey);
+	const openAIBaseUrl = useSettingsStore((state) => state.openAIBaseUrl);
+	const serverProxyUrl = useSettingsStore((state) => state.serverProxyUrl);
+	const modelType = useSettingsStore((state) => state.modelType);
+	const ollamaUrl = useSettingsStore((state) => state.ollamaUrl);
+	const ollamaModel = useSettingsStore((state) => state.ollamaModel);
+	const { setSettings, setModelType } = useSettingsStore.getState();
 	const [show, setShow] = useState(false);
 	const [tempOpenAIKey, setTempOpenAIKey] = useState("");
-	const [tempServerURL, setTempServerURL] = useState("");
-	const [tempBaseOpenAIURL, setTempBaseOpenAIURL] = useState("");
+	const [tempServerUrl, setTempServerUrl] = useState("");
+	const [tempBaseOpenAIUrl, setTempBaseOpenAIUrl] = useState("");
 	const [isValid, setIsValid] = useState(true);
 	const [tempModelType, setTempModelType] = useState(modelType);
 	const [tempOllamaUrl, setTempOllamaUrl] = useState("");
@@ -64,15 +56,15 @@ const ModelSettingsModal = () => {
 
 	const loadSettings = () => {
 		setTempOpenAIKey(openaiKey || "");
-		setTempServerURL(serverProxyURL || "");
-		setTempBaseOpenAIURL(openAIBaseUrl || "");
+		setTempServerUrl(serverProxyUrl || "");
+		setTempBaseOpenAIUrl(openAIBaseUrl || "");
 		setTempOllamaUrl(ollamaUrl || "");
 		setTempOllamaModel(ollamaModel || "");
 		setTempModelType(modelType || "openai");
 	};
 
 	const validate = () => {
-		if (tempBaseOpenAIURL && !tempOpenAIKey) {
+		if (tempBaseOpenAIUrl && !tempOpenAIKey) {
 			setIsValid(false);
 		} else {
 			setIsValid(true);
@@ -91,9 +83,9 @@ const ModelSettingsModal = () => {
 			return;
 		}
 		await setSettings({
-			openAIBaseURL: tempBaseOpenAIURL,
+			openAIBaseUrl: tempBaseOpenAIUrl,
 			openAIKey: tempOpenAIKey,
-			serverProxyURL: tempServerURL,
+			serverProxyUrl: tempServerUrl,
 			ollamaUrl: tempOllamaUrl,
 			ollamaModel: tempOllamaModel,
 			modelType: tempModelType,
@@ -110,7 +102,7 @@ const ModelSettingsModal = () => {
 
 	useEffect(() => {
 		validate();
-	}, [tempOpenAIKey, tempServerURL, tempBaseOpenAIURL]);
+	}, [tempOpenAIKey, tempServerUrl, tempBaseOpenAIUrl]);
 
 	useEffect(() => {
 		setTempModelType(modelType);
@@ -167,7 +159,7 @@ const ModelSettingsModal = () => {
 								<FormControl
 									id="api-key"
 									isInvalid={Boolean(
-										tempBaseOpenAIURL && !tempOpenAIKey,
+										tempBaseOpenAIUrl && !tempOpenAIKey,
 									)}
 								>
 									<FormLabel fontWeight="bold" fontSize="lg">
@@ -194,7 +186,7 @@ const ModelSettingsModal = () => {
 											</Button>
 										</InputRightElement>
 									</InputGroup>
-									{!isValid && tempBaseOpenAIURL && (
+									{!isValid && tempBaseOpenAIUrl && (
 										<Text
 											mt="2"
 											fontSize="small"
@@ -220,9 +212,9 @@ const ModelSettingsModal = () => {
 									</FormLabel>
 									<Input
 										placeholder="Enter your OpenAI Base URL"
-										value={tempBaseOpenAIURL}
+										value={tempBaseOpenAIUrl}
 										onChange={(e) =>
-											setTempBaseOpenAIURL(e.target.value)
+											setTempBaseOpenAIUrl(e.target.value)
 										}
 									/>
 									<Text

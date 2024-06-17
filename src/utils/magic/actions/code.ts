@@ -1,4 +1,4 @@
-import { useSettingsStore } from "../../../components/modals/server-settings/SettingsStore";
+import { useSettingsStore } from "../../../components/settings/SettingsStore";
 import { ActionState } from "../magicQuery";
 import { sharedAction } from "./shared/utils";
 

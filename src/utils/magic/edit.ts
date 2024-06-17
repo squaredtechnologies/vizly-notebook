@@ -1,9 +1,8 @@
 import useCellStore, {
 	CellStatus,
 } from "../../components/cell/store/CellStore";
-import { useModelSettingsModalStore } from "../../components/modals/model-settings/ModelSettingsModalStore";
-import { useSettingsStore } from "../../components/modals/server-settings/SettingsStore";
 import { useNotebookStore } from "../../components/notebook/store/NotebookStore";
+import { useSettingsStore } from "../../components/settings/SettingsStore";
 import ConnectionManager from "../../services/connection/connectionManager";
 import { ThreadCell } from "../../types/code.types";
 import { mostRelevantCellsForQuery } from "../embeddings";
@@ -26,9 +25,7 @@ export const editCell = async (cell: ThreadCell, query: string) => {
 			currentNamespace: ConnectionManager.getInstance().currentNamespace,
 			mostRelevantCellsForQuery: await mostRelevantCellsForQuery(query),
 			theme: getAppTheme(),
-			...useModelSettingsModalStore
-				.getState()
-				.getAdditionalRequestMetadata(),
+			...useSettingsStore.getState().getAdditionalRequestMetadata(),
 		},
 		shouldCancel: () =>
 			useNotebookStore.getState().userAbortedMagicQueryController.signal

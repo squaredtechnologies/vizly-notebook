@@ -4,9 +4,8 @@ import {
 	MagicInputSelections,
 	useMagicInputStore,
 } from "../../components/input/MagicInputStore";
-import { useModelSettingsModalStore } from "../../components/modals/model-settings/ModelSettingsModalStore";
-import { useSettingsStore } from "../../components/modals/server-settings/SettingsStore";
 import { useNotebookStore } from "../../components/notebook/store/NotebookStore";
+import { useSettingsStore } from "../../components/settings/SettingsStore";
 import { useChatStore } from "../../components/sidebar/chat/store/ChatStore";
 import ConnectionManager, {
 	useConnectionManagerStore,
@@ -347,7 +346,7 @@ const generateCells = async (query: string, followUpRetries: number) => {
 				},
 				body: JSON.stringify({
 					actionState: actionState,
-					...useModelSettingsModalStore
+					...useSettingsStore
 						.getState()
 						.getAdditionalRequestMetadata(),
 				}),

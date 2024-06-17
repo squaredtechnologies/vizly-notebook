@@ -1,11 +1,13 @@
 import { captureException } from "@sentry/nextjs";
-import { OpenAIStream, StreamingTextResponse } from "ai";
+import { StreamingTextResponse } from "ai";
 import { NextApiResponse } from "next";
 import { NextResponse } from "next/server";
 import {
 	ChatCompletionMessageParam,
 	FunctionDefinition,
 } from "openai/resources";
+import { v4 as uuidv4 } from "uuid";
+import { LangfuseClient, captureOpenAIStream } from "../../_shared/langfuse";
 import { ModelInformation, getModelForRequest } from "../../_shared/model";
 import { getOpenAIClient } from "../../_shared/openai";
 import { getThemePrompt } from "../../_shared/promptUtils";
@@ -86,6 +88,19 @@ ${themePrompt}`,
 		const model = getModelForRequest(modelInformation);
 
 		try {
+			const model = getModelForRequest(modelInformation);
+			const trace = LangfuseClient.getInstance().trace({
+				id: uuidv4(),
+				name: `editCell`,
+				input: messages,
+				userId: uniqueId,
+			});
+			const generation = trace.generation({
+				name: `editCell`,
+				input: messages,
+				model: model,
+			});
+
 			const response = await openai.chat.completions.create({
 				model: model,
 				messages: messages,
@@ -98,7 +113,7 @@ ${themePrompt}`,
 				stream: true,
 			});
 
-			const stream = OpenAIStream(response);
+			const stream = captureOpenAIStream(response, trace, generation);
 			return new StreamingTextResponse(stream);
 		} catch (error) {
 			captureException(error);

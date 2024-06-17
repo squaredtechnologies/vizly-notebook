@@ -6,7 +6,7 @@ import { CHAT_PANEL_ID } from "../../../../utils/constants/constants";
 import { mostRelevantCellsForQuery } from "../../../../utils/embeddings";
 import { formatCellOutputs } from "../../../../utils/magic/messages";
 import { makeStreamingRequest } from "../../../../utils/streaming";
-import { useSettingsStore } from "../../../modals/server-settings/SettingsStore";
+import { useSettingsStore } from "../../../settings/SettingsStore";
 import { useNotebookStore } from "../../../notebook/store/NotebookStore";
 import { useSidebarStore } from "../../store/SidebarStore";
 export type UserType = "assistant" | "user";
