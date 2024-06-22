@@ -1,9 +1,13 @@
 import { CSSReset, ChakraProvider, ColorModeScript } from "@chakra-ui/react";
 import { AppProps } from "next/app";
+
+// Required for IPython widgets
+import "@jupyter-widgets/controls/css/widgets.css";
 import "../styles/cm-dark.css";
 import "../styles/cm-light.css";
 import "../styles/globals.css";
 import theme from "../theme";
+import "font-awesome/css/font-awesome.css";
 
 declare global {
 	interface Window {
