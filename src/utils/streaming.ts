@@ -28,9 +28,13 @@ export async function* parseStream(
 ) {
 	const reader = data.getReader();
 	const decoder = new TextDecoder();
-
 	let done = false;
 	let buffer = "";
+
+	function processString(str: string): string {
+		str = str.replace(/^\d+:"/, '').replace(/"\n?$/, '');
+		return str.replace(/\\n/g, '\n');
+	}
 
 	while (!done) {
 		if (shouldCancel()) {
@@ -39,9 +43,11 @@ export async function* parseStream(
 		}
 		const { value, done: doneReading } = await reader.read();
 		done = doneReading;
-		const chunkValue = decoder.decode(value);
-		buffer += chunkValue;
-		yield buffer;
+		if (value) {
+			const chunkValue = decoder.decode(value);
+			buffer += processString(chunkValue);
+			yield buffer;
+		}
 	}
 }
 

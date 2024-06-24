@@ -42,13 +42,18 @@ export const editCell = async (cell: ThreadCell, query: string) => {
 						.signal.aborted,
 		  });
 
-	for await (const data of stream) {
-		if (typeof data === "string") {
+	for await (let data of stream) {
+		data = data.trim();
+		if (data.startsWith("0:")){
 			const trimmedData = data.replace(/^```|```$/g, "");
 			setProposedSource(cell.id as string, trimmedData);
-		} else if (data && typeof data === "object" && "source" in data) {
-			const source = data.source.replace(/^```|```$/g, "");
+		} else if (data.startsWith("9:")) {
+			console.log("data:", data);
+			let jsonifiedData = JSON.parse(data.slice(2).replace(/\n/g, "\\n"));
+			const source = jsonifiedData.args.source.replace(/^```|```$/g, "");
 			setProposedSource(cell.id as string, source);
+		} else {
+			throw new Error("Unexpected data format");
 		}
 	}
 

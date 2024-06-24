@@ -1,39 +1,29 @@
-import { StreamingTextResponse } from "ai";
-import { FunctionDefinition } from "openai/resources";
+import { StreamingTextResponse, CoreTool, streamText } from 'ai';
+import { z } from 'zod';
+import { createOpenAI } from '@ai-sdk/openai';
 import {
-	captureOpenAIStream,
+	captureAIStream,
 	createTraceAndGeneration,
 } from "../utils/langfuse";
 import { formatMessages } from "../utils/message";
-import { ModelInformation, getModelForRequest } from "../utils/model";
+import { ModelInformation, getModelForRequest, getAPIKeyForRequest, getBaseURLForRequest } from "../utils/model";
 import { getOpenAIClient, isBrowser } from "../utils/openai";
 import { ActionState } from "../utils/types/messages";
 
 // Constants for Fix Function
 export const FIX_FUNCTION_NAME = "code";
-export const FIX_FUNCTION: FunctionDefinition = {
-	name: FIX_FUNCTION_NAME,
+export const FIX_FUNCTION: CoreTool = {
 	description: "The function to call when generating Python cells.",
-	parameters: {
-		type: "object",
-		properties: {
-			cells: {
-				type: "array",
-				items: {
-					type: "object",
-					properties: {
-						source: {
-							type: "string",
-							description:
-								"JSON formatted string of Python source code to execute. Must be valid Python code and valid JSON. The `cell_type` of each generated cell will already be `code`, do not generate `cell_type` as a key. Each item you generate in the array will be a separate cell in the Jupyter notebook.",
-						},
-					},
-				},
-			},
-		},
-		required: ["cells"],
-	},
-};
+	parameters: z.object({
+	  cells: z.array(
+		z.object({
+		  source: z.string().describe(
+			"JSON formatted string of Python source code to execute. Must be valid Python code and valid JSON. The `cell_type` of each generated cell will already be `code`, do not generate `cell_type` as a key. Each item you generate in the array will be a separate cell in the Jupyter notebook."
+		  )
+		})
+	  )
+	})
+  };
 
 let systemPrompt: string = `You are Thread, a helpful Python code fixing assistant that operates as part of an ensemble of agents and is tasked with the subtask of fixing Python code that encountered syntax, runtime or other errors.
 - The Python code you generate will be executed in the same Jupyter Notebook environment where the other error occurred.
@@ -58,8 +48,19 @@ export async function handleFixError(data: {
 }) {
 	const { actionState, uniqueId, modelInformation } = data;
 
-	const openai = getOpenAIClient(modelInformation);
+	const modelType = modelInformation?.modelType;
 	const model = getModelForRequest(modelInformation);
+	const apiKey = getAPIKeyForRequest(modelInformation);
+	const baseURL = getBaseURLForRequest(modelInformation);
+	
+	let client: any;
+	if (modelType === "openai" || modelType === "ollama") {
+		const openai = createOpenAI({ apiKey: apiKey, baseURL: baseURL});
+		client = openai(model);
+	} else {
+		throw new Error("Model type not supported");
+	}
+
 	const messages = formatMessages(systemPrompt, actionState, 20e3);
 
 	const { trace, generation } = createTraceAndGeneration(
@@ -70,22 +71,17 @@ export async function handleFixError(data: {
 		uniqueId,
 	);
 
-	const response = await openai.chat.completions.create({
-		model: model,
+	const response = await streamText({
+		model: client,
 		messages: messages,
 		temperature: 0.5,
 		...(isBrowser()
-			? {}
-			: {
-					tools: [{ type: "function", function: FIX_FUNCTION }],
-					tool_choice: {
-						type: "function",
-						function: { name: FIX_FUNCTION_NAME },
-					},
-			  }),
-		stream: true,
+			? {
+				tools: {[FIX_FUNCTION_NAME] : FIX_FUNCTION},
+				toolChoice: "required",
+			  } : {}),
 	});
-
-	const stream = captureOpenAIStream(response, trace, generation);
+	
+	const stream = captureAIStream(response, trace, generation);
 	return new StreamingTextResponse(stream);
 }

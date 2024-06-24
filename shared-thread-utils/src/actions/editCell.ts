@@ -1,32 +1,21 @@
-import { StreamingTextResponse } from "ai";
-import {
-	ChatCompletionMessageParam,
-	FunctionDefinition,
-} from "openai/resources";
+import { StreamingTextResponse, CoreTool, streamText } from 'ai';
+import { z } from 'zod';
+import { createOpenAI } from '@ai-sdk/openai';
 import { v4 as uuidv4 } from "uuid";
-import { LangfuseClient, captureOpenAIStream } from "../utils/langfuse";
-import { ModelInformation, getModelForRequest } from "../utils/model";
-import { getOpenAIClient, isBrowser } from "../utils/openai";
+import { MessageType } from "../utils/types/messages";
+import { LangfuseClient, captureAIStream } from "../utils/langfuse";
+import { ModelInformation, getModelForRequest, getAPIKeyForRequest, getBaseURLForRequest } from "../utils/model";
+import { isBrowser } from "../utils/openai";
 import { getThemePrompt } from "../utils/promptUtils";
 
 // Constants for Cell Edit Function
 export const CELL_EDIT_FUNCTION_NAME = "editCode";
-export const CELL_EDIT_FUNCTION: FunctionDefinition = {
-	name: CELL_EDIT_FUNCTION_NAME,
-	description:
-		"The function to call after generating the edits required by the user.",
-	parameters: {
-		type: "object",
-		properties: {
-			source: {
-				type: "string",
-				description:
-					"JSON formatted string of the cell source. Should be Python code, should never be undefined.",
-			},
-		},
-		required: ["source"],
-	},
-};
+export const CELL_EDIT_FUNCTION: CoreTool = {
+	description: "The function to call after generating the edits required by the user.",
+	parameters: z.object({
+	  source: z.string().describe("JSON formatted string of the cell source. Should be Python code, should never be undefined."),
+	}),
+  };
 
 // Function to handle cell editing
 export async function handleCellEdit(data: {
@@ -74,19 +63,25 @@ ${themePrompt}`;
 - Do not surround code with back ticks`;
 	}
 
-	const messages: ChatCompletionMessageParam[] = [
-		{
-			role: "system",
-			content: systemPrompt,
-		},
+	const messages: MessageType[] = [
 		{
 			role: "user",
 			content: JSON.stringify(context),
 		},
 	];
 
-	const openai = getOpenAIClient(modelInformation);
+	const modelType = modelInformation?.modelType;
 	const model = getModelForRequest(modelInformation);
+	const apiKey = getAPIKeyForRequest(modelInformation);
+	const baseURL = getBaseURLForRequest(modelInformation);
+	
+	let client: any;
+	if (modelType === "openai" || modelType === "ollama") {
+		const openai = createOpenAI({ apiKey: apiKey, baseURL: baseURL});
+		client = openai(model);
+	} else {
+		throw new Error("Model type not supported");
+	}
 
 	const trace = LangfuseClient.getInstance().trace({
 		id: uuidv4(),
@@ -101,22 +96,18 @@ ${themePrompt}`;
 		model: model,
 	});
 
-	const response = await openai.chat.completions.create({
-		model: model,
+	const response = await streamText({
+		model: client,
 		messages: messages,
 		temperature: 0.3,
+		system: systemPrompt,
 		...(isBrowser()
-			? {}
-			: {
-					tools: [{ type: "function", function: CELL_EDIT_FUNCTION }],
-					tool_choice: {
-						type: "function",
-						function: { name: CELL_EDIT_FUNCTION_NAME },
-					},
-			  }),
-		stream: true,
+			? {
+				tools: {[CELL_EDIT_FUNCTION_NAME] : CELL_EDIT_FUNCTION},
+				toolChoice: "required",
+			  } : {}),
 	});
-
-	const stream = captureOpenAIStream(response, trace, generation);
+	
+	const stream = captureAIStream(response, trace, generation);
 	return new StreamingTextResponse(stream);
 }

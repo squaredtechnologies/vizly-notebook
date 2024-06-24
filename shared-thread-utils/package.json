@@ -7,8 +7,9 @@
 		"build": "tsc"
 	},
 	"dependencies": {
+		"@ai-sdk/openai": "^0.0.33",
 		"@sentry/nextjs": "^8.10.0",
-		"ai": "3.0.19",
+		"ai": "^3.2.5",
 		"best-effort-json-parser": "^1.0.1",
 		"langfuse": "^3.11.2",
 		"lodash": "^4.17.21",
