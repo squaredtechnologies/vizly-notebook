@@ -13,9 +13,10 @@
 		"test": "jest"
 	},
 	"dependencies": {
+		"@ai-sdk/openai": "^0.0.33",
 		"@sentry/nextjs": "^7.95.0",
 		"@uiw/react-codemirror": "^4.21.20",
-		"ai": "3.0.19",
+		"ai": "^3.2.5",
 		"codemirror": "^6.0.0",
 		"flat": ">=5.0.1",
 		"langfuse": "^3.11.2",

@@ -8,7 +8,6 @@ import {
 } from "../utils/langfuse";
 import { formatMessages } from "../utils/message";
 import { ModelInformation, getModelForRequest, getAPIKeyForRequest, getBaseURLForRequest } from "../utils/model";
-import { isBrowser } from "../utils/openai";
 import { ActionState } from "../utils/types/messages";
 
 // Constants for Code Function
@@ -52,15 +51,12 @@ Data analysis instructions:
 - Make the plots you create as visually appealing as possible.
 - You utilize white font colors when generating graphs with a dark paper color. You use dark font colors if a light paper color is used.
 
-- When creating a Plotly plot, please use 'fig.show()' to display the plot.`;
-
-if (isBrowser()) {
-	systemPrompt += `
+- When creating a Plotly plot, please use 'fig.show()' to display the plot.
 - Do not generate any explanation other than the Python code
 - Only return the Python code and no other preamble
 - Only return one Python cell at a time
 - Do not surround code with back ticks`;
-}
+
 
 export async function handleCodeGeneration(data: {
 	actionState: ActionState;
@@ -96,11 +92,8 @@ export async function handleCodeGeneration(data: {
 		messages: messages,
 		temperature: 0.5,
 		system: systemPrompt,
-		...(isBrowser()
-			? {
-				tools: {[CODE_FUNCTION_NAME] : CODE_FUNCTION},
-				toolChoice: "required",
-			  } : {}),
+		tools: {[CODE_FUNCTION_NAME] : CODE_FUNCTION},
+		toolChoice: "required",
 	});
 	
 	const stream = captureAIStream(response, trace, generation);

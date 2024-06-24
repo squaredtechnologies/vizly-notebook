@@ -87,7 +87,7 @@ export const handleChatRequest = async (params: {
 	const model = getModelForRequest(modelInformation);
 	const apiKey = getAPIKeyForRequest(modelInformation);
 	const baseURL = getBaseURLForRequest(modelInformation);
-	
+		
 	let client: any;
 	if (modelType === "openai" || modelType === "ollama") {
 		const openai = createOpenAI({ apiKey: apiKey, baseURL: baseURL});
@@ -118,6 +118,8 @@ export const handleChatRequest = async (params: {
 		system: instructions,
 		temperature: 0.5,
 	});
+
+	console.log("openai.chat.completions", response);
 	
 	// // Handle aborting the response
 	// response.signal.addEventListener("abort", () => {

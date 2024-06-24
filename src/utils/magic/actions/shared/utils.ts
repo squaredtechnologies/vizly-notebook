@@ -60,52 +60,56 @@ interface StreamWrapperParamsWithCellType<P> extends StreamWrapperParams<P> {
 	cellType: string;
 }
 
+interface Cell {
+	cell_type?: string;
+	source?: string;
+}  
+
 export async function* sharedLocalAction<P>({
 	streamGenerator,
 	params,
 	shouldCancel = () => false,
 	cellType,
-}: StreamWrapperParamsWithCellType<P>): AsyncGenerator<any, void, unknown> {
+  }: StreamWrapperParamsWithCellType<P>): AsyncGenerator<any, void, unknown> {
 	const stream = parseStreamWrapper({
-		streamGenerator,
-		params,
-		shouldCancel,
+	  streamGenerator,
+	  params,
+	  shouldCancel,
 	});
-
+  
 	for await (let data of stream) {
-		data = data.trim();
-		if (data.startsWith('9:')) {
-			try {
-				const jsonData = JSON.parse(data.slice(2).replace(/\n/g, "\\n"));
-				if (jsonData.args && jsonData.args.cells) {
-					const cells = jsonData.args.cells.map(cell => ({
-						...cell,
-						cell_type: cellType
-					}));
-					yield { cells };
-				}
-			} catch (error) {
-				console.error('Error parsing JSON:', error);
-			}
-		} else {
-			let trimmedData = data;
-			const backtickBlockRegex = /^```([\s\S]*?)```$/;
-			const match = data.match(backtickBlockRegex);
-	
-			if (match) {
-				trimmedData = match[1];
-			} else {
-				trimmedData = data.replace(/^```|```$/g, "");
-			}
-	
-			const cells = [
-				{
-					cell_type: cellType,
-					source: trimmedData,
-				},
-			];
-	
+	  data = data.trim();
+	  if (data.startsWith('9:')) {
+		try {
+		  const jsonData = JSON.parse(data.slice(2).replace(/\n/g, "\\n"));
+		  if (jsonData.args && jsonData.args.cells) {
+			const cells = jsonData.args.cells.map((cell: Cell) => ({
+			  ...cell,
+			  cell_type: cellType
+			}));
 			yield { cells };
+		  }
+		} catch (error) {
+		  console.error('Error parsing JSON:', error);
 		}
+	  } else {
+		let trimmedData = data;
+		const backtickBlockRegex = /^```([\s\S]*?)```$/;
+		const match = data.match(backtickBlockRegex);
+  
+		if (match) {
+		  trimmedData = match[1];
+			trimmedData = data.replace(/^```|```$/g, "");
+		}
+  
+		const cells: Cell[] = [
+		  {
+			cell_type: cellType,
+			source: trimmedData,
+		  },
+		];
+  
+		yield { cells };
+	  }
 	}
-}
+  }

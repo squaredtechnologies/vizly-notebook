@@ -5,7 +5,6 @@ import { v4 as uuidv4 } from "uuid";
 import { MessageType } from "../utils/types/messages";
 import { LangfuseClient, captureAIStream } from "../utils/langfuse";
 import { ModelInformation, getModelForRequest, getAPIKeyForRequest, getBaseURLForRequest } from "../utils/model";
-import { isBrowser } from "../utils/openai";
 import { getThemePrompt } from "../utils/promptUtils";
 
 // Constants for Cell Edit Function
@@ -55,13 +54,9 @@ You will be given:
 - Current Python code that the user wants to edit
 - List of files the user has uploaded
 - Current Python namespace
-${themePrompt}`;
-
-	if (isBrowser()) {
-		systemPrompt += `
+${themePrompt}
 - Only return the Python code and no other preamble
 - Do not surround code with back ticks`;
-	}
 
 	const messages: MessageType[] = [
 		{
@@ -101,11 +96,8 @@ ${themePrompt}`;
 		messages: messages,
 		temperature: 0.3,
 		system: systemPrompt,
-		...(isBrowser()
-			? {
-				tools: {[CELL_EDIT_FUNCTION_NAME] : CELL_EDIT_FUNCTION},
-				toolChoice: "required",
-			  } : {}),
+		tools: {[CELL_EDIT_FUNCTION_NAME] : CELL_EDIT_FUNCTION},
+		toolChoice: "required",
 	});
 	
 	const stream = captureAIStream(response, trace, generation);

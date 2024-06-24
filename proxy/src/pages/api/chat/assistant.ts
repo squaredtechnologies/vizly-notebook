@@ -18,7 +18,7 @@ export default async function handler(req: Request, res: NextApiResponse) {
 			NextResponse.json({ status: 401 });
 			return;
 		}
-
+		console.log("modelInformation", modelInformation);
 		try {
 			return handleChatRequest({
 				messages,

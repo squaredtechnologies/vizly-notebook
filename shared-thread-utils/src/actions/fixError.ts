@@ -7,7 +7,6 @@ import {
 } from "../utils/langfuse";
 import { formatMessages } from "../utils/message";
 import { ModelInformation, getModelForRequest, getAPIKeyForRequest, getBaseURLForRequest } from "../utils/model";
-import { getOpenAIClient, isBrowser } from "../utils/openai";
 import { ActionState } from "../utils/types/messages";
 
 // Constants for Fix Function
@@ -30,15 +29,10 @@ let systemPrompt: string = `You are Thread, a helpful Python code fixing assista
 Your instructions:
 - The Python code you generate should be valid JSON format.
 - The code you generate should try to solve the error as accurately as possible while trying to still respect the original intention of what the code was trying to do.
-- You should only produce the JSON formatted string for the Python code.`;
-
-if (isBrowser()) {
-	systemPrompt += `
-- Do not generate any explanation other than the Python code
+- You should only produce the JSON formatted string for the Python code.- Do not generate any explanation other than the Python code
 - Only return the Python code and no other preamble
 - Only return one Python cell at a time
 - Do not surround code with back ticks`;
-}
 
 // Function to handle error fixing
 export async function handleFixError(data: {
@@ -75,11 +69,8 @@ export async function handleFixError(data: {
 		model: client,
 		messages: messages,
 		temperature: 0.5,
-		...(isBrowser()
-			? {
-				tools: {[FIX_FUNCTION_NAME] : FIX_FUNCTION},
-				toolChoice: "required",
-			  } : {}),
+		tools: {[FIX_FUNCTION_NAME] : FIX_FUNCTION},
+		toolChoice: "required",
 	});
 	
 	const stream = captureAIStream(response, trace, generation);

@@ -31,7 +31,7 @@ export const getAPIKeyForRequest = (modelInformation?: ModelInformation) => {
 export const getBaseURLForRequest = (modelInformation?: ModelInformation) => {
 	const { modelType, openAIBaseUrl, ollamaUrl } = modelInformation || {};
 
-	const OPENAI_BASE_URL: string = process.env.OPENAI_BASE_URL || "";
+	const OPENAI_BASE_URL: string = process.env.OPENAI_BASE_URL || "https://api.openai.com/v1";
 
 	if (modelType === "ollama") {
 		return ollamaUrl;
