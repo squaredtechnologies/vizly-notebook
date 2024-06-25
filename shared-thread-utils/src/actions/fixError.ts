@@ -1,5 +1,5 @@
 import { createOpenAI } from "@ai-sdk/openai";
-import { CoreTool, StreamingTextResponse, streamObject } from "ai";
+import { CoreTool, StreamingTextResponse, streamObject, streamText } from "ai";
 import { z } from "zod";
 import { createTraceAndGeneration } from "../utils/langfuse";
 import { formatMessages } from "../utils/message";
@@ -10,6 +10,7 @@ import {
 	getModelForRequest,
 } from "../utils/model";
 import { ActionState } from "../utils/types/messages";
+import { isBrowser } from "../utils/utils";
 
 // Constants for Fix Function
 export const FIX_FUNCTION_NAME = "code";
@@ -33,10 +34,7 @@ let systemPrompt: string = `You are Thread, a helpful Python code fixing assista
 Your instructions:
 - The Python code you generate should be valid JSON format.
 - The code you generate should try to solve the error as accurately as possible while trying to still respect the original intention of what the code was trying to do.
-- You should only produce the JSON formatted string for the Python code.- Do not generate any explanation other than the Python code
-- Only return the Python code and no other preamble
-- Only return one Python cell at a time
-- Do not surround code with back ticks`;
+- You should only produce the JSON formatted string for the Python code.`;
 
 // Function to handle error fixing
 export async function handleFixError(data: {
@@ -58,6 +56,12 @@ export async function handleFixError(data: {
 	} else {
 		throw new Error("Model type not supported");
 	}
+	if (isBrowser()) {
+		systemPrompt += `- Do not generate any explanation other than the Python code
+- Only return the Python code and no other preamble
+- Only return one Python cell at a time
+- Do not surround code with back ticks`;
+	}
 
 	const messages = formatMessages(systemPrompt, actionState, 20e3);
 
@@ -69,21 +73,38 @@ export async function handleFixError(data: {
 		uniqueId,
 	);
 
-	const response = await streamObject({
-		model: client,
-		messages: messages,
-		temperature: 0.5,
-		schema: FIX_FUNCTION.parameters,
-		mode: "tool",
-		onFinish(event) {
-			generation.end({
-				output: event.object,
-			});
-			trace.update({
-				output: event.object,
-			});
-		},
-	});
+	let response;
+	if (isBrowser()) {
+		response = await streamText({
+			model: client,
+			messages: messages,
+			temperature: 0.5,
+			onFinish(event) {
+				generation.end({
+					output: event.text,
+				});
+				trace.update({
+					output: event.text,
+				});
+			},
+		});
+	} else {
+		response = await streamObject({
+			model: client,
+			messages: messages,
+			temperature: 0.5,
+			schema: FIX_FUNCTION.parameters,
+			mode: "tool",
+			onFinish(event) {
+				generation.end({
+					output: event.object,
+				});
+				trace.update({
+					output: event.object,
+				});
+			},
+		});
+	}
 
 	return new StreamingTextResponse(response.textStream);
 }
