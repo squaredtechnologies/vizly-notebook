@@ -1,25 +1,34 @@
 // codeUtils.ts
-import { StreamingTextResponse, CoreTool, streamText } from 'ai';
-import { z } from 'zod';
-import { createOpenAI } from '@ai-sdk/openai';
-import {
-	captureAIStream,
-	createTraceAndGeneration,
-} from "../utils/langfuse";
+import { createOpenAI } from "@ai-sdk/openai";
+import { CoreTool, StreamingTextResponse, streamObject, streamText } from "ai";
+import { z } from "zod";
+import { createTraceAndGeneration } from "../utils/langfuse";
 import { formatMessages } from "../utils/message";
-import { ModelInformation, getModelForRequest, getAPIKeyForRequest, getBaseURLForRequest } from "../utils/model";
+import {
+	ModelInformation,
+	getAPIKeyForRequest,
+	getBaseURLForRequest,
+	getModelForRequest,
+} from "../utils/model";
 import { ActionState } from "../utils/types/messages";
+import { isBrowser } from "../utils/utils";
 
 // Constants for Code Function
 export const CODE_FUNCTION_NAME = "code";
 export const CODE_FUNCTION: CoreTool = {
 	description: "The function to call when generating Python cells.",
 	parameters: z.object({
-	  cells: z.array(z.object({
-		source: z.string().describe("JSON formatted string of Python source code to execute. Must be valid Python code and valid JSON. The `cell_type` of each generated cell will already be `code`, do not generate `cell_type` as a key. Each item you generate in the array will be a separate cell in the Jupyter notebook."),
-	  })),
+		cells: z.array(
+			z.object({
+				source: z
+					.string()
+					.describe(
+						"JSON formatted string of Python source code to execute. Must be valid Python code and valid JSON. The `cell_type` of each generated cell will already be `code`, do not generate `cell_type` as a key. Each item you generate in the array will be a separate cell in the Jupyter notebook.",
+					),
+			}),
+		),
 	}),
-  };
+};
 
 let systemPrompt: string = `You are Thread, a helpful Python code generating assistant that operates as part of an ensemble of agents and is tasked with the subtask of generating syntactically correct Python code.
 - The Python code you generate will be executed in order in a Jupyter Notebook environment.
@@ -49,14 +58,7 @@ Data analysis instructions:
 - You load the file 'file.csv' directly from the current directory 'file.csv', not from '/mnt/data/file.csv'.
 - You employ libraries like pandas and numpy for data manipulation, and Plotly for visualizations. Wherever possible, use WebGL to render plots.
 - Make the plots you create as visually appealing as possible.
-- You utilize white font colors when generating graphs with a dark paper color. You use dark font colors if a light paper color is used.
-
-- When creating a Plotly plot, please use 'fig.show()' to display the plot.
-- Do not generate any explanation other than the Python code
-- Only return the Python code and no other preamble
-- Only return one Python cell at a time
-- Do not surround code with back ticks`;
-
+- You utilize white font colors when generating graphs with a dark paper color. You use dark font colors if a light paper color is used`;
 
 export async function handleCodeGeneration(data: {
 	actionState: ActionState;
@@ -65,14 +67,22 @@ export async function handleCodeGeneration(data: {
 }) {
 	const { actionState, uniqueId, modelInformation } = data;
 
+	if (isBrowser()) {
+		systemPrompt += `
+- Do not generate any explanation other than the Python code
+- Only return the Python code and no other preamble
+- Only return one Python cell at a time
+- Do not surround code with back ticks`;
+	}
+
 	const modelType = modelInformation?.modelType;
 	const model = getModelForRequest(modelInformation);
 	const apiKey = getAPIKeyForRequest(modelInformation);
 	const baseURL = getBaseURLForRequest(modelInformation);
-	
+
 	let client: any;
 	if (modelType === "openai" || modelType === "ollama") {
-		const openai = createOpenAI({ apiKey: apiKey, baseURL: baseURL});
+		const openai = createOpenAI({ apiKey: apiKey, baseURL: baseURL });
 		client = openai(model);
 	} else {
 		throw new Error("Model type not supported");
@@ -87,15 +97,40 @@ export async function handleCodeGeneration(data: {
 		uniqueId,
 	);
 
-	const response = await streamText({
-		model: client,
-		messages: messages,
-		temperature: 0.5,
-		system: systemPrompt,
-		tools: {[CODE_FUNCTION_NAME] : CODE_FUNCTION},
-		toolChoice: "required",
-	});
-	
-	const stream = captureAIStream(response, trace, generation);
-	return new StreamingTextResponse(stream);
+	let response;
+	if (isBrowser()) {
+		response = await streamText({
+			model: client,
+			messages: messages,
+			temperature: 0.5,
+			system: systemPrompt,
+			onFinish(event) {
+				generation.end({
+					output: event.text,
+				});
+				trace.update({
+					output: event.text,
+				});
+			},
+		});
+	} else {
+		response = await streamObject({
+			model: client,
+			messages: messages,
+			temperature: 0.5,
+			system: systemPrompt,
+			schema: CODE_FUNCTION.parameters,
+			mode: "tool",
+			onFinish(event) {
+				generation.end({
+					output: event.object,
+				});
+				trace.update({
+					output: event.object,
+				});
+			},
+		});
+	}
+
+	return new StreamingTextResponse(response.textStream);
 }

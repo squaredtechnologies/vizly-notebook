@@ -1,8 +1,8 @@
 import { captureException } from "@sentry/nextjs";
 import { NextApiResponse } from "next";
 import { NextResponse } from "next/server";
-import { MessageType } from "../../../types/messages"; 
 import { ModelInformation, handleChatRequest } from "shared-thread-utils";
+import { MessageType } from "../../../types/messages";
 
 /* This is required to use OpenAIStream. */
 export const runtime = "edge";
@@ -18,7 +18,6 @@ export default async function handler(req: Request, res: NextApiResponse) {
 			NextResponse.json({ status: 401 });
 			return;
 		}
-		console.log("modelInformation", modelInformation);
 		try {
 			return handleChatRequest({
 				messages,

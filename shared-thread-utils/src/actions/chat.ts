@@ -1,8 +1,13 @@
-import { StreamingTextResponse, streamText } from 'ai';
+import { createOpenAI } from "@ai-sdk/openai";
+import { StreamingTextResponse, streamText } from "ai";
 import { v4 as uuidv4 } from "uuid";
-import { LangfuseClient, captureAIStream } from "../utils/langfuse";
-import { ModelInformation, getModelForRequest, getAPIKeyForRequest, getBaseURLForRequest } from "../utils/model";
-import { createOpenAI } from '@ai-sdk/openai';
+import { LangfuseClient } from "../utils/langfuse";
+import {
+	ModelInformation,
+	getAPIKeyForRequest,
+	getBaseURLForRequest,
+	getModelForRequest,
+} from "../utils/model";
 import { getChatContextPrompt } from "../utils/promptUtils";
 import { ChatMessage, MessageType } from "../utils/types/messages";
 
@@ -82,15 +87,14 @@ export const handleChatRequest = async (params: {
 }): Promise<StreamingTextResponse> => {
 	const { messages, modelInformation, uniqueId } = params;
 
-	
 	const modelType = modelInformation?.modelType;
 	const model = getModelForRequest(modelInformation);
 	const apiKey = getAPIKeyForRequest(modelInformation);
 	const baseURL = getBaseURLForRequest(modelInformation);
-		
+
 	let client: any;
 	if (modelType === "openai" || modelType === "ollama") {
-		const openai = createOpenAI({ apiKey: apiKey, baseURL: baseURL});
+		const openai = createOpenAI({ apiKey: apiKey, baseURL: baseURL });
 		client = openai(model);
 	} else {
 		throw new Error("Model type not supported");
@@ -117,17 +121,15 @@ export const handleChatRequest = async (params: {
 		messages: messages,
 		system: instructions,
 		temperature: 0.5,
+		onFinish(event) {
+			generation.end({
+				output: event.text,
+			});
+			trace.update({
+				output: event.text,
+			});
+		},
 	});
 
-	console.log("openai.chat.completions", response);
-	
-	// // Handle aborting the response
-	// response.signal.addEventListener("abort", () => {
-	// 	console.log("openai.chat.completions aborted");
-	// 	throw new Error("Response generation was aborted");
-	// });
-
-	// Capture the LLM stream
-	const stream = captureAIStream(response, trace, generation);
-	return new StreamingTextResponse(stream);
+	return new StreamingTextResponse(response.textStream);
 };

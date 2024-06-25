@@ -17,7 +17,7 @@ export const getModelForRequest = (modelInformation?: ModelInformation) => {
 };
 
 export const getAPIKeyForRequest = (modelInformation?: ModelInformation) => {
-	const { modelType, openAIKey  } = modelInformation || {};
+	const { modelType, openAIKey } = modelInformation || {};
 
 	const OPENAI_API_KEY: string = process.env.OPENAI_API_KEY || "";
 
@@ -31,11 +31,12 @@ export const getAPIKeyForRequest = (modelInformation?: ModelInformation) => {
 export const getBaseURLForRequest = (modelInformation?: ModelInformation) => {
 	const { modelType, openAIBaseUrl, ollamaUrl } = modelInformation || {};
 
-	const OPENAI_BASE_URL: string = process.env.OPENAI_BASE_URL || "https://api.openai.com/v1";
+	const OPENAI_BASE_URL: string =
+		process.env.OPENAI_BASE_URL || "https://api.openai.com/v1";
 
 	if (modelType === "ollama") {
-		return ollamaUrl;
+		return ollamaUrl || "http://0.0.0.0:11434/v1";
 	}
 
 	return openAIBaseUrl || OPENAI_BASE_URL;
-}
+};

@@ -1,12 +1,14 @@
-import { StreamingTextResponse, CoreTool, streamText } from 'ai';
-import { z } from 'zod';
-import { createOpenAI } from '@ai-sdk/openai';
-import {
-	captureAIStream,
-	createTraceAndGeneration,
-} from "../utils/langfuse";
+import { createOpenAI } from "@ai-sdk/openai";
+import { CoreTool, StreamingTextResponse, streamObject } from "ai";
+import { z } from "zod";
+import { createTraceAndGeneration } from "../utils/langfuse";
 import { formatMessages } from "../utils/message";
-import { ModelInformation, getModelForRequest, getAPIKeyForRequest, getBaseURLForRequest } from "../utils/model";
+import {
+	ModelInformation,
+	getAPIKeyForRequest,
+	getBaseURLForRequest,
+	getModelForRequest,
+} from "../utils/model";
 import { ActionState } from "../utils/types/messages";
 
 // Constants for Fix Function
@@ -14,15 +16,17 @@ export const FIX_FUNCTION_NAME = "code";
 export const FIX_FUNCTION: CoreTool = {
 	description: "The function to call when generating Python cells.",
 	parameters: z.object({
-	  cells: z.array(
-		z.object({
-		  source: z.string().describe(
-			"JSON formatted string of Python source code to execute. Must be valid Python code and valid JSON. The `cell_type` of each generated cell will already be `code`, do not generate `cell_type` as a key. Each item you generate in the array will be a separate cell in the Jupyter notebook."
-		  )
-		})
-	  )
-	})
-  };
+		cells: z.array(
+			z.object({
+				source: z
+					.string()
+					.describe(
+						"JSON formatted string of Python source code to execute. Must be valid Python code and valid JSON. The `cell_type` of each generated cell will already be `code`, do not generate `cell_type` as a key. Each item you generate in the array will be a separate cell in the Jupyter notebook.",
+					),
+			}),
+		),
+	}),
+};
 
 let systemPrompt: string = `You are Thread, a helpful Python code fixing assistant that operates as part of an ensemble of agents and is tasked with the subtask of fixing Python code that encountered syntax, runtime or other errors.
 - The Python code you generate will be executed in the same Jupyter Notebook environment where the other error occurred.
@@ -46,10 +50,10 @@ export async function handleFixError(data: {
 	const model = getModelForRequest(modelInformation);
 	const apiKey = getAPIKeyForRequest(modelInformation);
 	const baseURL = getBaseURLForRequest(modelInformation);
-	
+
 	let client: any;
 	if (modelType === "openai" || modelType === "ollama") {
-		const openai = createOpenAI({ apiKey: apiKey, baseURL: baseURL});
+		const openai = createOpenAI({ apiKey: apiKey, baseURL: baseURL });
 		client = openai(model);
 	} else {
 		throw new Error("Model type not supported");
@@ -65,14 +69,21 @@ export async function handleFixError(data: {
 		uniqueId,
 	);
 
-	const response = await streamText({
+	const response = await streamObject({
 		model: client,
 		messages: messages,
 		temperature: 0.5,
-		tools: {[FIX_FUNCTION_NAME] : FIX_FUNCTION},
-		toolChoice: "required",
+		schema: FIX_FUNCTION.parameters,
+		mode: "tool",
+		onFinish(event) {
+			generation.end({
+				output: event.object,
+			});
+			trace.update({
+				output: event.object,
+			});
+		},
 	});
-	
-	const stream = captureAIStream(response, trace, generation);
-	return new StreamingTextResponse(stream);
+
+	return new StreamingTextResponse(response.textStream);
 }
