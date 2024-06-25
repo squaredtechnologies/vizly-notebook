@@ -1,20 +1,31 @@
-import { StreamingTextResponse, CoreTool, streamText } from 'ai';
-import { z } from 'zod';
-import { createOpenAI } from '@ai-sdk/openai';
+import { createOpenAI } from "@ai-sdk/openai";
+import { CoreTool, StreamingTextResponse, streamObject, streamText } from "ai";
 import { v4 as uuidv4 } from "uuid";
-import { MessageType } from "../utils/types/messages";
-import { LangfuseClient, captureAIStream } from "../utils/langfuse";
-import { ModelInformation, getModelForRequest, getAPIKeyForRequest, getBaseURLForRequest } from "../utils/model";
+import { z } from "zod";
+import { LangfuseClient } from "../utils/langfuse";
+import {
+	ModelInformation,
+	getAPIKeyForRequest,
+	getBaseURLForRequest,
+	getModelForRequest,
+} from "../utils/model";
 import { getThemePrompt } from "../utils/promptUtils";
+import { MessageType } from "../utils/types/messages";
+import { isBrowser } from "../utils/utils";
 
 // Constants for Cell Edit Function
 export const CELL_EDIT_FUNCTION_NAME = "editCode";
 export const CELL_EDIT_FUNCTION: CoreTool = {
-	description: "The function to call after generating the edits required by the user.",
+	description:
+		"The function to call after generating the edits required by the user.",
 	parameters: z.object({
-	  source: z.string().describe("JSON formatted string of the cell source. Should be Python code, should never be undefined."),
+		source: z
+			.string()
+			.describe(
+				"JSON formatted string of the cell source. Should be Python code, should never be undefined.",
+			),
 	}),
-  };
+};
 
 // Function to handle cell editing
 export async function handleCellEdit(data: {
@@ -54,9 +65,13 @@ You will be given:
 - Current Python code that the user wants to edit
 - List of files the user has uploaded
 - Current Python namespace
-${themePrompt}
+${themePrompt}`;
+
+	if (isBrowser()) {
+		systemPrompt += `
 - Only return the Python code and no other preamble
 - Do not surround code with back ticks`;
+	}
 
 	const messages: MessageType[] = [
 		{
@@ -69,10 +84,10 @@ ${themePrompt}
 	const model = getModelForRequest(modelInformation);
 	const apiKey = getAPIKeyForRequest(modelInformation);
 	const baseURL = getBaseURLForRequest(modelInformation);
-	
+
 	let client: any;
 	if (modelType === "openai" || modelType === "ollama") {
-		const openai = createOpenAI({ apiKey: apiKey, baseURL: baseURL});
+		const openai = createOpenAI({ apiKey: apiKey, baseURL: baseURL });
 		client = openai(model);
 	} else {
 		throw new Error("Model type not supported");
@@ -91,15 +106,40 @@ ${themePrompt}
 		model: model,
 	});
 
-	const response = await streamText({
-		model: client,
-		messages: messages,
-		temperature: 0.3,
-		system: systemPrompt,
-		tools: {[CELL_EDIT_FUNCTION_NAME] : CELL_EDIT_FUNCTION},
-		toolChoice: "required",
-	});
-	
-	const stream = captureAIStream(response, trace, generation);
-	return new StreamingTextResponse(stream);
+	let response;
+	if (isBrowser()) {
+		response = await streamText({
+			model: client,
+			messages: messages,
+			temperature: 0.5,
+			system: systemPrompt,
+			onFinish(event) {
+				generation.end({
+					output: event.text,
+				});
+				trace.update({
+					output: event.text,
+				});
+			},
+		});
+	} else {
+		response = await streamObject({
+			model: client,
+			messages: messages,
+			temperature: 0.5,
+			system: systemPrompt,
+			schema: CELL_EDIT_FUNCTION.parameters,
+			mode: "tool",
+			onFinish(event) {
+				generation.end({
+					output: event.object,
+				});
+				trace.update({
+					output: event.object,
+				});
+			},
+		});
+	}
+
+	return new StreamingTextResponse(response.textStream);
 }

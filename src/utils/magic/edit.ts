@@ -7,7 +7,7 @@ import { useSettingsStore } from "../../components/settings/SettingsStore";
 import ConnectionManager from "../../services/connection/connectionManager";
 import { ThreadCell } from "../../types/code.types";
 import { mostRelevantCellsForQuery } from "../embeddings";
-import { makeStreamingFunctionRequest, parseStreamWrapper } from "../streaming";
+import { makeStreamingJsonRequest, parseStreamWrapper } from "../streaming";
 import { getAppTheme, multilineStringToString } from "../utils";
 
 const { getServerProxyUrl } = useSettingsStore.getState();
@@ -33,7 +33,7 @@ export const editCell = async (cell: ThreadCell, query: string) => {
 				streamGenerator: handleCellEdit,
 				params: payload,
 		  })
-		: makeStreamingFunctionRequest({
+		: makeStreamingJsonRequest({
 				url: `${getServerProxyUrl()}/api/magic/actions/editCell`,
 				method: "POST",
 				payload: payload,
@@ -43,17 +43,12 @@ export const editCell = async (cell: ThreadCell, query: string) => {
 		  });
 
 	for await (let data of stream) {
-		data = data.trim();
-		if (data.startsWith("0:")){
+		console.log("data: ", data);
+		if (data && typeof data === "object" && "source" in data) {
+			setProposedSource(cell.id as string, data.source);
+		} else if (typeof data === "string") {
 			const trimmedData = data.replace(/^```|```$/g, "");
 			setProposedSource(cell.id as string, trimmedData);
-		} else if (data.startsWith("9:")) {
-			console.log("data:", data);
-			let jsonifiedData = JSON.parse(data.slice(2).replace(/\n/g, "\\n"));
-			const source = jsonifiedData.args.source.replace(/^```|```$/g, "");
-			setProposedSource(cell.id as string, source);
-		} else {
-			throw new Error("Unexpected data format");
 		}
 	}
 
