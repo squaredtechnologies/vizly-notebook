@@ -76,7 +76,7 @@ const ServerSettingsModal = () => {
 							/>
 							<Text mt="2" fontSize="small" color="gray.500">
 								Optional: Enter the URL of your server proxy. If
-								using a local model, this should point to
+								using a local proxy, this should point to
 								http://localhost:5001 or whichever port serves
 								the proxy.
 							</Text>
