@@ -1,50 +1,51 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from "react";
 import {
-    Badge,
-    Button,
-    ButtonGroup,
-    Divider,
-    FormControl,
-    FormLabel,
-    HStack,
-    Input,
-    InputGroup,
-    InputRightElement,
-    Modal,
-    ModalBody,
-    ModalCloseButton,
-    ModalContent,
-    ModalFooter,
-    ModalHeader,
-    ModalOverlay,
-    Spacer,
-    Switch,
-    Text,
-    VStack,
-    useToast,
+	Badge,
+	Button,
+	ButtonGroup,
+	Divider,
+	FormControl,
+	FormLabel,
+	HStack,
+	Input,
+	InputGroup,
+	InputRightElement,
+	Modal,
+	ModalBody,
+	ModalCloseButton,
+	ModalContent,
+	ModalFooter,
+	ModalHeader,
+	ModalOverlay,
+	Switch,
+	Text,
+	VStack,
+	useToast,
 } from "@chakra-ui/react";
 import Link from "next/link";
 import { AnthropicIcon, OllamaIcon, OpenAIIcon } from "../../../assets/icons";
 import { useSettingsStore } from "../../settings/SettingsStore";
-import { API_URL } from '../../../utils/constants/constants';
+import { API_URL } from "../../../utils/constants/constants";
 
 const ModelSettingsModal = () => {
-    const isOpen = useSettingsStore((state) => state.showModelSettingsModal);
-    const setIsOpen = useSettingsStore((state) => state.setShowModelSettingsModal);
-    const handleClose = () => setIsOpen(false);
+	const isOpen = useSettingsStore((state) => state.showModelSettingsModal);
+	const setIsOpen = useSettingsStore(
+		(state) => state.setShowModelSettingsModal,
+	);
+	const handleClose = () => setIsOpen(false);
 
-    const {
-        openAIKey,
-        openAIBaseUrl,
-        serverProxyUrl,
-        modelType,
-        ollamaUrl,
-        ollamaModel,
+	const {
+		openAIKey,
+		openAIBaseUrl,
+		serverProxyUrl,
+		modelType,
+		ollamaUrl,
+		ollamaModel,
 		isLocal,
-        setSettings,
-        setModelType,
-        fetchSettings,
-    } = useSettingsStore.getState();
+		setSettings,
+		setModelType,
+		fetchSettings,
+	} = useSettingsStore.getState();
 
     const [show, setShow] = useState(false);
     const [tempOpenAIKey, setTempOpenAIKey] = useState("");
@@ -58,25 +59,25 @@ const ModelSettingsModal = () => {
 	const [tempAnthropicModel, setTempAnthropicModel] = useState("");
 	const [tempAnthropicBaseUrl, setTempAnthropicBaseUrl] = useState("");
 	const [tempIsLocal, setTempIsLocal] = useState(false);
-    const toast = useToast();
+	const toast = useToast();
 
-    useEffect(() => {
-        fetchSettings();
-    }, []);
+	useEffect(() => {
+		fetchSettings();
+	}, []);
 
-    useEffect(() => {
-        if (isOpen) {
-            loadSettings();
-        }
-    }, [isOpen]);
+	useEffect(() => {
+		if (isOpen) {
+			loadSettings();
+		}
+	}, [isOpen]);
 
     useEffect(() => {
         validate();
-    }, [tempOpenAIKey, tempServerUrl, tempOpenAIBaseUrl, tempAnthropicKey, tempAnthropicModel, tempAnthropicBaseUrl, tempIsLocal]);
+    }, [tempOpenAIKey, tempServerUrl, tempOpenAIBaseUrl, tempAnthropicKey, tempAnthropicModel, tempAnthropicBaseUrl, tempIsLocal, tempModelType]);
 
-    useEffect(() => {
-        setTempModelType(modelType);
-    }, [modelType]);
+	useEffect(() => {
+		setTempModelType(modelType);
+	}, [modelType]);
 
     const loadSettings = () => {
         setTempOpenAIKey(openAIKey || "");
@@ -86,10 +87,14 @@ const ModelSettingsModal = () => {
         setTempOllamaModel(ollamaModel || "");
         setTempModelType(modelType || "openai");
 		setTempIsLocal(isLocal || modelType === "ollama" || false);
-    };
+	};
 
     const validate = () => {
-        if ((tempOpenAIBaseUrl && !tempOpenAIKey) || (tempOpenAIBaseUrl && !tempAnthropicKey) || (tempOpenAIBaseUrl && !tempIsLocal) || (tempAnthropicBaseUrl && !tempIsLocal)){
+        if (
+			(tempModelType === "openai" && ((!tempOpenAIBaseUrl && tempIsLocal) || !tempOpenAIKey)) ||
+			(tempModelType === "anthropic" && ((!tempAnthropicBaseUrl && tempIsLocal) || !tempAnthropicKey)) ||
+			(tempModelType === "ollama" && (!tempOllamaModel || ~tempOllamaUrl))
+		){
             setIsValid(false);
         } else {
             setIsValid(true);
@@ -115,13 +120,13 @@ const ModelSettingsModal = () => {
             ollamaUrl: tempOllamaUrl,
             ollamaModel: tempOllamaModel,
 			isLocal: tempIsLocal || tempModelType === "ollama",
-            modelType: tempModelType,
-        });
-        setModelType(tempModelType);
-        handleClose();
-    };
+			modelType: tempModelType,
+		});
+		setModelType(tempModelType);
+		handleClose();
+	};
 
-    const toggleShowKey = () => setShow(!show);
+	const toggleShowKey = () => setShow(!show);
 
     return (
         <Modal isOpen={isOpen} onClose={handleClose} size={["sm", "md", "lg"]}>
@@ -209,14 +214,24 @@ const ModelSettingsModal = () => {
                                             </Button>
                                         </InputRightElement>
                                     </InputGroup>
-                                    {!isValid && tempOpenAIBaseUrl && (
-                                        <Text mt="2" fontSize="small" color="red.500">
-                                            API key must be set if base URL or proxy server URL is provided.
-                                        </Text>
-                                    )}
-                                    <Text mt="2" fontSize="small" color="gray.500">
-                                        For unlimited usage of Thread&apos;s AI features, enter your OpenAI API key above.
-                                    </Text>
+									{!tempOpenAIKey && tempIsLocal && tempModelType === "openai" && (
+										<Text
+											mt="2"
+											fontSize="small"
+											color="red.500"
+										>
+											API key must be set when using local API calls.
+										</Text>
+									)}
+									<Text
+										mt="2"
+										fontSize="small"
+										color="gray.500"
+									>
+										For unlimited usage of Thread&apos;s AI
+										features, enter your OpenAI API key
+										above.
+									</Text>
                                 </FormControl>
                                 <FormControl id="base-openai-url">
                                     <FormLabel fontWeight="bold" fontSize="lg">
@@ -227,8 +242,17 @@ const ModelSettingsModal = () => {
                                         value={tempOpenAIBaseUrl}
                                         onChange={(e) => setTempOpenAIBaseUrl(e.target.value)}
                                     />
+									{!tempOpenAIBaseUrl && tempIsLocal && tempModelType === "openai" && (
+										<Text
+											mt="2"
+											fontSize="small"
+											color="red.500"
+										>
+											API endpoint must be set when using local API calls.
+										</Text>
+									)}
                                     <Text mt="2" fontSize="small" color="gray.500">
-                                        Optional: Enter the base URL for OpenAI.
+                                        Enter the base URL for OpenAI.
                                     </Text>
                                 </FormControl>
                             </>
@@ -303,13 +327,23 @@ const ModelSettingsModal = () => {
 											</Button>
 										</InputRightElement>
 									</InputGroup>
-									{!isValid && tempAnthropicBaseUrl && (
-										<Text mt="2" fontSize="small" color="red.500">
-											API key must be set if base URL or proxy server URL is provided.
+									{!tempAnthropicKey && tempIsLocal && tempModelType === "anthropic" && (
+										<Text
+											mt="2"
+											fontSize="small"
+											color="red.500"
+										>
+											API key must be set if using local API calls.
 										</Text>
 									)}
-									<Text mt="2" fontSize="small" color="gray.500">
-										For unlimited usage of Thread&apos;s AI features, enter your Anthropic API key above.
+									<Text
+										mt="2"
+										fontSize="small"
+										color="gray.500"
+									>
+										For unlimited usage of Thread&apos;s AI
+										features, enter your Anthropic API key
+										above.
 									</Text>
 								</FormControl>
 								<FormControl id="base-anthropic-url">
@@ -321,8 +355,17 @@ const ModelSettingsModal = () => {
 										value={tempAnthropicBaseUrl}
 										onChange={(e) => setTempAnthropicBaseUrl(e.target.value)}
 									/>
+									{!tempAnthropicBaseUrl && tempIsLocal && tempModelType === "anthropic" && (
+										<Text
+											mt="2"
+											fontSize="small"
+											color="red.500"
+										>
+											API endpoint must be set when using local API calls.
+										</Text>
+									)}
 									<Text mt="2" fontSize="small" color="gray.500">
-										Optional: Enter the base URL for Anthropic.
+										Enter the base URL for Anthropic.
 									</Text>
 								</FormControl>
 							</>
@@ -332,87 +375,101 @@ const ModelSettingsModal = () => {
 							<>
 								<Divider></Divider>
 
-								<FormControl display="flex" flexDirection="column" alignItems="start">
-									<HStack width="100%" justifyContent="space-between" alignItems="center">
-										<FormLabel htmlFor="is-local" mb="0" fontWeight="bold" fontSize="lg">
+								<FormControl
+									display="flex"
+									flexDirection="column"
+									alignItems="start"
+								>
+									<HStack
+										width="100%"
+										justifyContent="space-between"
+										alignItems="center"
+									>
+										<FormLabel
+											htmlFor="is-local"
+											mb="0"
+											fontWeight="bold"
+											fontSize="lg"
+										>
 											Send API Calls Locally
 										</FormLabel>
 										<Switch
 											id="is-local"
 											colorScheme="orange"
 											isChecked={tempIsLocal}
-											onChange={(e) => setTempIsLocal(e.target.checked)}
+											onChange={(e) =>
+												setTempIsLocal(e.target.checked)
+											}
 										/>
 									</HStack>
-									{tempIsLocal && (
-										<Text mt="2" fontSize="small" color="gray.500">
-											Send requests directly from the client.
-										</Text>
-									)}
+									<Text
+										mt="2"
+										fontSize="small"
+										color="gray.500"
+									>
+										{tempIsLocal
+											? "Requests will be sent directly from the client."
+											: "Turning off will require a server proxy URL."}
+									</Text>
 								</FormControl>
 
 								{!tempIsLocal && (
-									<FormControl id="proxy-url" mt="-4">
+									<FormControl id="proxy-url" mt="4">
+										{" "}
+										{/*Removed negative margin*/}
+										<FormLabel
+											htmlFor="server-proxy-url"
+											fontWeight="bold"
+											fontSize="md"
+										>
+											Server Proxy URL
+										</FormLabel>
+										<Text
+											mt="2"
+											fontSize="small"
+											color="gray.500"
+										>
+											Enter the URL of your server proxy.
+										</Text>
 										<Input
+											id="server-proxy-url"
 											placeholder="Enter your Server Proxy URL"
 											value={tempServerUrl}
-											onChange={(e) => setTempServerUrl(e.target.value)}
+											onChange={(e) =>
+												setTempServerUrl(e.target.value)
+											}
 										/>
-										<Text mt="2" fontSize="small" color="gray.500">
-											Enter the URL of your server proxy.
-											For a local proxy, use http://localhost:5001
-											or the appropriate port.
-										</Text>
 									</FormControl>
 								)}
 							</>
 						) : (
-							<>
-								<Divider></Divider>
-
-								<FormControl display="flex" flexDirection="column" alignItems="start">
-									<HStack width="100%" justifyContent="space-between" alignItems="center">
-										<FormLabel htmlFor="is-local" mb="0" fontWeight="bold" fontSize="lg">
-											Send API Calls Locally
-										</FormLabel>
-										<Switch
-											id="is-local"
-											colorScheme="orange"
-											isChecked={true}
-											disabled={true}
-										/>
-									</HStack>
-									<Text mt="2" fontSize="small" color="gray.500">
-										Ollama only supports local API calls.
-									</Text>
-								</FormControl>
-							</>
+							<></>
 						)}
-                    </VStack>
-                </ModalBody>
-                <ModalFooter>
-                    <HStack width="100%" justifyContent="flex-end">
-                        <Button
-                            variant="ghost"
-                            colorScheme="red"
-                            onClick={handleClose}
-                            fontFamily="Space Grotesk"
-                        >
-                            Cancel
-                        </Button>
-                        <Button
-                            colorScheme="orange"
-                            onClick={saveSettings}
-                            isDisabled={!isValid}
-                            fontFamily="Space Grotesk"
-                        >
-                            Save
-                        </Button>
-                    </HStack>
-                </ModalFooter>
-            </ModalContent>
-        </Modal>
-    );
+					</VStack>
+				</ModalBody>
+				<ModalFooter>
+					<HStack width="100%" justifyContent="flex-end">
+						<Button
+							variant="ghost"
+							colorScheme="red"
+							onClick={handleClose}
+							fontFamily="Space Grotesk"
+						>
+							Cancel
+						</Button>
+						<Button
+							colorScheme="orange"
+							onClick={saveSettings}
+							isDisabled={!isValid}
+							fontFamily="Space Grotesk"
+						>
+							Save
+						</Button>
+					</HStack>
+				</ModalFooter>
+			</ModalContent>
+		</Modal>
+	);
 };
 
 export default ModelSettingsModal;
