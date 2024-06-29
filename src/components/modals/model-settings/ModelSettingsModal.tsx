@@ -17,6 +17,7 @@ import {
 	ModalFooter,
 	ModalHeader,
 	ModalOverlay,
+	Select,
 	Switch,
 	Text,
 	VStack,
@@ -41,6 +42,9 @@ const ModelSettingsModal = () => {
 		modelType,
 		ollamaUrl,
 		ollamaModel,
+		anthropicKey,
+		anthropicModel,
+		anthropicBaseUrl,
 		isLocal,
 		setSettings,
 		setModelType,
@@ -73,7 +77,17 @@ const ModelSettingsModal = () => {
 
     useEffect(() => {
         validate();
-    }, [tempOpenAIKey, tempServerUrl, tempOpenAIBaseUrl, tempAnthropicKey, tempAnthropicModel, tempAnthropicBaseUrl, tempIsLocal, tempModelType]);
+    }, [tempOpenAIKey,
+		tempOpenAIBaseUrl,
+		tempOllamaModel,
+		tempOllamaUrl,
+		tempAnthropicKey,
+		tempAnthropicModel,
+		tempAnthropicBaseUrl,
+		tempIsLocal,
+		tempServerUrl,
+		tempModelType
+	]);
 
 	useEffect(() => {
 		setTempModelType(modelType);
@@ -85,15 +99,19 @@ const ModelSettingsModal = () => {
         setTempOpenAIBaseUrl(openAIBaseUrl || "");
         setTempOllamaUrl(ollamaUrl || "");
         setTempOllamaModel(ollamaModel || "");
+		setTempAnthropicKey(anthropicKey || "");
+		setTempAnthropicModel(anthropicModel || "")
+		setTempAnthropicBaseUrl(anthropicBaseUrl || "");
         setTempModelType(modelType || "openai");
 		setTempIsLocal(isLocal || modelType === "ollama" || false);
 	};
 
     const validate = () => {
         if (
-			(tempModelType === "openai" && ((!tempOpenAIBaseUrl && tempIsLocal) || !tempOpenAIKey)) ||
-			(tempModelType === "anthropic" && ((!tempAnthropicBaseUrl && tempIsLocal) || !tempAnthropicKey)) ||
-			(tempModelType === "ollama" && (!tempOllamaModel || ~tempOllamaUrl))
+			(tempModelType === "openai" && ((!tempOpenAIBaseUrl && tempIsLocal) || (!tempOpenAIKey && tempIsLocal))) ||
+			(tempModelType === "anthropic" && ((!tempAnthropicBaseUrl && tempIsLocal) || (!tempAnthropicKey && tempIsLocal))) ||
+			(tempModelType === "ollama" && (!tempOllamaModel || !tempOllamaUrl)) || 
+			(!tempIsLocal && !tempServerUrl)
 		){
             setIsValid(false);
         } else {
@@ -119,6 +137,9 @@ const ModelSettingsModal = () => {
             serverProxyUrl: !tempIsLocal ? tempServerUrl : "",
             ollamaUrl: tempOllamaUrl,
             ollamaModel: tempOllamaModel,
+			anthropicKey: tempAnthropicKey,
+			anthropicModel: tempAnthropicModel,
+			anthropicBaseUrl: tempAnthropicBaseUrl,
 			isLocal: tempIsLocal || tempModelType === "ollama",
 			modelType: tempModelType,
 		});
@@ -190,7 +211,6 @@ const ModelSettingsModal = () => {
                             <>
                                 <FormControl
                                     id="api-key"
-                                    isInvalid={Boolean(tempOpenAIBaseUrl && !tempOpenAIKey)}
                                 >
                                     <FormLabel fontWeight="bold" fontSize="lg">
                                         OpenAI API Key
@@ -269,6 +289,15 @@ const ModelSettingsModal = () => {
                                         value={tempOllamaUrl}
                                         onChange={(e) => setTempOllamaUrl(e.target.value)}
                                     />
+									{!tempOllamaUrl && tempModelType === "ollama" && (
+										<Text
+											mt="2"
+											fontSize="small"
+											color="red.500"
+										>
+											You need to add the ollama endpoint URL.
+										</Text>
+									)}
                                     <Text mt="2" fontSize="small" color="gray.500">
                                         The URL of your Ollama model, e.g. http://localhost:11434/v1. If localhost doesn&apos;t work, try 0.0.0.0
                                     </Text>
@@ -282,6 +311,15 @@ const ModelSettingsModal = () => {
                                         value={tempOllamaModel}
                                         onChange={(e) => setTempOllamaModel(e.target.value)}
                                     />
+									{!tempOllamaModel && tempModelType === "ollama" && (
+										<Text
+											mt="2"
+											fontSize="small"
+											color="red.500"
+										>
+											You need to add the ollama model name.
+										</Text>
+									)}
                                     <Text mt="2" fontSize="small" color="gray.500">
                                         The name of the Ollama model being served, e.g. llama3 or codestral. For current purposes,{" "}
                                         <Text
@@ -303,7 +341,6 @@ const ModelSettingsModal = () => {
                             <>
 								<FormControl
 									id="api-key"
-									isInvalid={Boolean(tempAnthropicBaseUrl && !tempAnthropicKey)}
 								>
 									<FormLabel fontWeight="bold" fontSize="lg">
 										Anthropic API Key
@@ -344,6 +381,20 @@ const ModelSettingsModal = () => {
 										For unlimited usage of Thread&apos;s AI
 										features, enter your Anthropic API key
 										above.
+									</Text>
+								</FormControl>
+								<FormControl id="base-anthropic-model">
+									<FormLabel fontWeight="bold" fontSize="lg">
+										Anthropic Model
+									</FormLabel>
+									<Select value={tempAnthropicModel} placeholder={"Choose a model"} onChange={(e) => setTempAnthropicModel(e.target.value)}>
+										<option value="claude-3-5-sonnet-20240620">Claude 3.5 Sonnet</option>
+										<option value="claude-3-opus-20240307">Claude 3.0 Opus</option>
+										<option value="claude-3-sonnet-20240307">Claude 3.0 Sonnet</option>
+										<option value="claude-3-haiku-20240307">Claude 3.0 Haiku</option>
+									</Select>
+									<Text mt="2" fontSize="small" color="gray.500">
+										Select the Anthropic model.
 									</Text>
 								</FormControl>
 								<FormControl id="base-anthropic-url">
