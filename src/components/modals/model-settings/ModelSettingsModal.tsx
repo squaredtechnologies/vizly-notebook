@@ -191,7 +191,7 @@ const ModelSettingsModal = () => {
                                     </InputGroup>
                                     {!isValid && tempBaseOpenAIUrl && (
                                         <Text mt="2" fontSize="small" color="red.500">
-                                            API key must be set if base URL or proxy URL is provided.
+                                            API key must be set if base URL or proxy server URL is provided.
                                         </Text>
                                     )}
                                     <Text mt="2" fontSize="small" color="gray.500">
@@ -259,11 +259,11 @@ const ModelSettingsModal = () => {
 
 								<FormControl display="flex" flexDirection="column" alignItems="start">
 									<HStack width="100%" justifyContent="space-between" alignItems="center">
-										<FormLabel htmlFor="use-proxy" mb="0" fontWeight="bold" fontSize="lg">
-											Run API calls locally
+										<FormLabel htmlFor="is-local" mb="0" fontWeight="bold" fontSize="lg">
+											Send API Calls Locally
 										</FormLabel>
 										<Switch
-											id="use-proxy"
+											id="is-local"
 											colorScheme="orange"
 											isChecked={tempIsLocal}
 											onChange={(e) => setTempIsLocal(e.target.checked)}
