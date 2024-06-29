@@ -82,11 +82,10 @@ const ModelSettingsModal = () => {
         setTempOllamaUrl(ollamaUrl || "");
         setTempOllamaModel(ollamaModel || "");
         setTempModelType(modelType || "openai");
-		setTempIsLocal(isLocal || false);
+		setTempIsLocal(isLocal || modelType === "ollama" || false);
     };
 
     const validate = () => {
-		console.log("isLocal", )
         if ((tempBaseOpenAIUrl && !tempOpenAIKey) || (!tempIsLocal && !tempServerUrl)) {
             setIsValid(false);
         } else {
@@ -105,13 +104,14 @@ const ModelSettingsModal = () => {
             });
             return;
         }
+		
         await setSettings({
             openAIBaseUrl: tempBaseOpenAIUrl,
             openAIKey: tempOpenAIKey,
             serverProxyUrl: !tempIsLocal ? tempServerUrl : "",
             ollamaUrl: tempOllamaUrl,
             ollamaModel: tempOllamaModel,
-			isLocal: tempIsLocal,
+			isLocal: tempIsLocal || tempModelType === "ollama",
             modelType: tempModelType,
         });
         setModelType(tempModelType);
@@ -253,7 +253,7 @@ const ModelSettingsModal = () => {
                             </>
                         )}
 
-						{tempModelType !== "ollama" && (
+						{tempModelType !== "ollama" ? (
 							<>
 								<Divider></Divider>
 
@@ -290,6 +290,27 @@ const ModelSettingsModal = () => {
 										</Text>
 									</FormControl>
 								)}
+							</>
+						) : (
+							<>
+								<Divider></Divider>
+
+								<FormControl display="flex" flexDirection="column" alignItems="start">
+									<HStack width="100%" justifyContent="space-between" alignItems="center">
+										<FormLabel htmlFor="is-local" mb="0" fontWeight="bold" fontSize="lg">
+											Send API Calls Locally
+										</FormLabel>
+										<Switch
+											id="is-local"
+											colorScheme="orange"
+											isChecked={true}
+											disabled={true}
+										/>
+									</HStack>
+									<Text mt="2" fontSize="small" color="gray.500">
+										Ollama only supports local API calls.
+									</Text>
+								</FormControl>
 							</>
 						)}
                     </VStack>
