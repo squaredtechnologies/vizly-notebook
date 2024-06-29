@@ -18,7 +18,7 @@ export const getModelForRequest = (modelInformation?: ModelInformation) => {
 	}
 
 	if (modelType === "anthropic") {
-		return anthropicModel;
+		return anthropicModel || "";
 	}
 
 	return "gpt-4o";
