@@ -79,39 +79,53 @@ export async function* sharedLocalAction<P>({
 
 	for await (let data of stream) {
 		data = data.trim();
-		if (data.startsWith("9:")) {
+		let cells = [];
+
+		// Check for JSON objects with 'cell_type' and 'source'
+		const jsonMatch = data.match(
+			/\{.*"cell_type"\s*:\s*".*?",\s*"source"\s*:\s*".*?".*\}/,
+		);
+		if (jsonMatch) {
 			try {
-				const jsonData = JSON.parse(
-					data.slice(2).replace(/\n/g, "\\n"),
-				);
-				if (jsonData.args && jsonData.args.cells) {
-					const cells = jsonData.args.cells.map((cell: Cell) => ({
-						...cell,
-						cell_type: cellType,
-					}));
-					yield { cells };
-				}
+				const jsonObject = JSON.parse(jsonMatch[0]);
+				cells.push(jsonObject);
 			} catch (error) {
-				console.error("Error parsing JSON:", error);
+				console.error("Failed to parse JSON:", error);
+
+				// Extract the "source" value from the matched JSON string
+				const sourceMatch = jsonMatch[0].match(
+					/"source"\s*:\s*"([^"]*)"/,
+				);
+				if (sourceMatch && sourceMatch[1]) {
+					cells.push({
+						cell_type: cellType,
+						source: sourceMatch[1],
+					});
+				}
 			}
-		} else {
-			let trimmedData = data;
-			const backtickBlockRegex = /^```([\s\S]*?)```$/;
-			const match = data.match(backtickBlockRegex);
-
-			if (match) {
-				trimmedData = match[1];
-				trimmedData = data.replace(/^```|```$/g, "");
-			}
-
-			const cells: Cell[] = [
-				{
-					cell_type: cellType,
-					source: trimmedData,
-				},
-			];
-
-			yield { cells };
 		}
+
+		// Improved regex to capture any fenced code block optionally with a language specifier
+		const codeMatch = data.match(/```(?:\w+)?\s*([\s\S]*?)\s*```/);
+
+		if (codeMatch && codeMatch[1]) {
+			const extractedData = codeMatch[1].trim();
+			if (extractedData) {
+				cells.push({
+					cell_type: cellType,
+					source: extractedData,
+				});
+			}
+		}
+
+		if (cells.length === 0 && data) {
+			// Fallback to adding the raw data if no JSON or code block is found
+			cells.push({
+				cell_type: cellType,
+				source: data,
+			});
+		}
+
+		yield { cells };
 	}
 }

@@ -43,12 +43,20 @@ export const editCell = async (cell: ThreadCell, query: string) => {
 		  });
 
 	for await (let data of stream) {
-		console.log("data: ", data);
-		if (data && typeof data === "object" && "source" in data) {
-			setProposedSource(cell.id as string, data.source);
-		} else if (typeof data === "string") {
-			const trimmedData = data.replace(/^```|```$/g, "");
-			setProposedSource(cell.id as string, trimmedData);
+		if (data) {
+			if (typeof data === "object" && "source" in data) {
+				setProposedSource(cell.id as string, data.source);
+			} else if (typeof data === "string") {
+				// Improved regex to capture any fenced code block optionally with a language specifier
+				const codeMatch = data.match(/```(?:\w+)?\s*([\s\S]*?)\s*```/);
+				if (codeMatch && codeMatch[1]) {
+					// Use captured group and trim any leading/trailing whitespace
+					const cleanedCode = codeMatch[1].trim();
+					setProposedSource(cell.id as string, cleanedCode);
+				} else {
+					setProposedSource(cell.id as string, data.trim());
+				}
+			}
 		}
 	}
 
