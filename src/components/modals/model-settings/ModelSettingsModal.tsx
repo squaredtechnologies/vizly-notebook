@@ -253,41 +253,45 @@ const ModelSettingsModal = () => {
                             </>
                         )}
 
-						<Divider></Divider>
+						{tempModelType !== "ollama" && (
+							<>
+								<Divider></Divider>
 
-						<FormControl display="flex" flexDirection="column" alignItems="start">
-							<HStack width="100%" justifyContent="space-between" alignItems="center">
-								<FormLabel htmlFor="use-proxy" mb="0" fontWeight="bold" fontSize="lg">
-									Use Proxy
-								</FormLabel>
-								<Switch
-									id="use-proxy"
-									colorScheme="orange"
-									isChecked={!tempIsLocal}
-									onChange={(e) => setTempIsLocal(!e.target.checked)}
-								/>
-							</HStack>
-							{tempIsLocal && (
-								<Text mt="2" fontSize="small" color="gray.500">
-									Proxy server relays your requests.
-								</Text>
-							)}
-						</FormControl>
+								<FormControl display="flex" flexDirection="column" alignItems="start">
+									<HStack width="100%" justifyContent="space-between" alignItems="center">
+										<FormLabel htmlFor="use-proxy" mb="0" fontWeight="bold" fontSize="lg">
+											Run API calls locally
+										</FormLabel>
+										<Switch
+											id="use-proxy"
+											colorScheme="orange"
+											isChecked={tempIsLocal}
+											onChange={(e) => setTempIsLocal(e.target.checked)}
+										/>
+									</HStack>
+									{tempIsLocal && (
+										<Text mt="2" fontSize="small" color="gray.500">
+											Send requests directly from the client.
+										</Text>
+									)}
+								</FormControl>
 
-                        {!tempIsLocal && (
-                            <FormControl id="proxy-url" mt="-4">
-                                <Input
-                                    placeholder="Enter your Server Proxy URL"
-                                    value={tempServerUrl}
-                                    onChange={(e) => setTempServerUrl(e.target.value)}
-                                />
-                                <Text mt="2" fontSize="small" color="gray.500">
-                                    Enter the URL of your server proxy.
-									For a local proxy, use http://localhost:5001
-									or the appropriate port.
-                                </Text>
-                            </FormControl>
-                        )}
+								{!tempIsLocal && (
+									<FormControl id="proxy-url" mt="-4">
+										<Input
+											placeholder="Enter your Server Proxy URL"
+											value={tempServerUrl}
+											onChange={(e) => setTempServerUrl(e.target.value)}
+										/>
+										<Text mt="2" fontSize="small" color="gray.500">
+											Enter the URL of your server proxy.
+											For a local proxy, use http://localhost:5001
+											or the appropriate port.
+										</Text>
+									</FormControl>
+								)}
+							</>
+						)}
                     </VStack>
                 </ModalBody>
                 <ModalFooter>
