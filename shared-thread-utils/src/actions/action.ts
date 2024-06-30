@@ -197,7 +197,7 @@ export const processActionRequest = async (
 			model,
 			uniqueId,
 		);
-
+	
 		const response = await generateText({
 			model: client,
 			messages: messages,
@@ -230,6 +230,7 @@ export const processActionRequest = async (
 			return { type: ActionType.Code };
 		}
 	} catch (error) {
+		console.error(error);
 		captureException(error);
 		throw new Error("Error calling LLM API");
 	}
